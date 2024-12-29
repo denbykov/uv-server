@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	Port int16
 }
 
 func (config *Config) parse(path string) {

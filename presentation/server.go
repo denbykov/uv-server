@@ -30,7 +30,7 @@ func NewServer(config *config.Config) *Server {
 func (s *Server) Run() error {
 	http.HandleFunc("/ws", s.handleConnection)
 
-	port := ":3000"
+	port := fmt.Sprintf(":%v", s.config.Port)
 
 	s.log.Infof("Websocket server started on %s", port)
 	return http.ListenAndServe(port, nil)
