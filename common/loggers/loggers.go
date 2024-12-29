@@ -26,21 +26,24 @@ var dataLogger *logrus.Logger
 var DataLogger *logrus.Entry
 
 type ThreadsafeWriter struct {
-	Writer io.Writer
-	Mutex  *sync.Mutex
+	writers []io.Writer
+	mutex   *sync.Mutex
 }
 
 func (w ThreadsafeWriter) Write(p []byte) (n int, err error) {
-	w.Mutex.Lock()
-	n, err = w.Writer.Write(p)
-	w.Mutex.Unlock()
+	w.mutex.Lock()
+	for _, writer := range w.writers {
+		n, err = writer.Write(p)
+	}
+	w.mutex.Unlock()
 	return
 }
 
-func Init() {
-	logDirectory := "logs"
-
+func Init(logDirectory string, logFile string) {
 	log := logrus.New()
+
+	level := logrus.TraceLevel
+	log.SetLevel(level)
 
 	if _, err := os.Stat(logDirectory); errors.Is(err, os.ErrNotExist) {
 		err := os.Mkdir(logDirectory, os.ModePerm)
@@ -49,7 +52,7 @@ func Init() {
 		}
 	}
 
-	logFile, err := os.OpenFile(filepath.Join(logDirectory, "log.txt"),
+	file, err := os.OpenFile(filepath.Join(logDirectory, logFile),
 		os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 
 	if err != nil {
@@ -57,26 +60,30 @@ func Init() {
 	}
 
 	writer = &ThreadsafeWriter{
-		Writer: logFile,
-		Mutex:  &sync.Mutex{},
+		writers: []io.Writer{file, os.Stdout},
+		mutex:   &sync.Mutex{},
 	}
 
 	applicationLogger = logrus.New()
+	applicationLogger.SetLevel(level)
 	applicationLogger.SetOutput(writer)
 	applicationLogger.SetNoLock()
 	ApplicationLogger = applicationLogger.WithField("name", "Application")
 
 	businessLogger = logrus.New()
+	businessLogger.SetLevel(level)
 	businessLogger.SetOutput(writer)
 	businessLogger.SetNoLock()
 	BusinessLogger = businessLogger.WithField("name", "Business")
 
 	presentationLogger = logrus.New()
+	presentationLogger.SetLevel(level)
 	presentationLogger.SetOutput(writer)
 	presentationLogger.SetNoLock()
 	PresentationLogger = presentationLogger.WithField("name", "Presentation")
 
 	dataLogger = logrus.New()
+	dataLogger.SetLevel(level)
 	dataLogger.SetOutput(writer)
 	dataLogger.SetNoLock()
 	DataLogger = dataLogger.WithField("name", "Data")

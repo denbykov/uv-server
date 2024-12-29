@@ -1,53 +1,25 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"path/filepath"
 	"server/common/loggers"
-
-	"github.com/gorilla/websocket"
+	"server/config"
+	"server/presentation"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(c *http.Request) bool { return true },
-}
-
-func handleConnection(w http.ResponseWriter, r *http.Request) {
-	ws, err := upgrader.Upgrade(w, r, nil)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer ws.Close()
-
-	for {
-		_, msg, err := ws.ReadMessage()
-		if err != nil {
-			fmt.Println("read error:", err)
-			break
-		}
-
-		fmt.Printf("Received: %s\n", msg)
-
-		if err := ws.WriteMessage(websocket.TextMessage, msg); err != nil {
-			fmt.Println("Write error:", err)
-			break
-		}
-	}
-}
-
 func main() {
-	loggers.Init()
+	loggers.Init("logs", "log.txt")
 	defer loggers.CloseLogFile()
 
 	loggers.ApplicationLogger.Info("Starting...")
 
-	// http.HandleFunc("/ws", handleConnection)
+	config := config.NewConfig(filepath.Join("config", "config.yaml"))
 
-	// fmt.Println("Websocket server started on :3000")
-	// err := http.ListenAndServe(":3000", nil)
-	// if err != nil {
-	// 	fmt.Println("ListenAndServe:", err)
-	// }
+	server := presentation.NewServer(config)
+
+	err := server.Run()
+
+	if err != nil {
+		loggers.PresentationLogger.Error(err)
+	}
 }
