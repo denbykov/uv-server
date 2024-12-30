@@ -19,3 +19,5 @@ func NewHandlerFactory(config *config.Config) *HandlerFactory {
 
 	return object
 }
+
+func (h *HandlerFactory) 
