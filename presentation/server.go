@@ -20,11 +20,11 @@ type Server struct {
 }
 
 func NewServer(config *config.Config) *Server {
-	server := &Server{}
-	server.log = loggers.PresentationLogger
-	server.config = config
+	object := &Server{}
+	object.log = loggers.PresentationLogger
+	object.config = config
 
-	return server
+	return object
 }
 
 func (s *Server) Run() error {
