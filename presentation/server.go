@@ -2,6 +2,7 @@ package presentation
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"server/common/loggers"
 	"server/config"
@@ -15,14 +16,19 @@ var upgrader = websocket.Upgrader{
 }
 
 type Server struct {
-	log    *logrus.Entry
-	config *config.Config
+	log      *logrus.Entry
+	config   *config.Config
+	factory  *HandlerFactory
+	sessions []*Session
 }
 
 func NewServer(config *config.Config) *Server {
 	object := &Server{}
+
 	object.log = loggers.PresentationLogger
 	object.config = config
+	object.factory = NewHandlerFactory(config)
+	object.sessions = make([]*Session, 0)
 
 	return object
 }
@@ -42,30 +48,12 @@ func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
-	defer ws.Close()
 
-	for {
-		_, msg, err := ws.ReadMessage()
-		if err != nil {
-			switch err.(type) {
-			case *websocket.CloseError:
-				s.log.Infof("Connection from %s is closed", r.Host)
-				return
-			default:
-			}
-
-			s.log.Error("Read error: ", err)
-			return
-		}
-
-		s.log.Tracef("Received: %s", msg)
-
-		if err := ws.WriteMessage(websocket.TextMessage, msg); err != nil {
-			s.log.Error("Write error:", err)
-			return
-		}
-	}
+	// Could add session removal later, but as I'm expecting to have
+	// only one client at the moment I do not really care
+	session := NewSession(s.config, ws, r.Host, s.factory)
+	s.sessions = append(s.sessions, session)
+	session.Run()
 }
