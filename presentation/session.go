@@ -1,6 +1,8 @@
 package presentation
 
 import (
+	"errors"
+	"net"
 	"server/common/loggers"
 	"server/config"
 	"server/presentation/messages"
@@ -61,15 +63,34 @@ func (s *Session) readPump() {
 			case *websocket.CloseError:
 				s.log.Infof("Connection from %s is closed", s.peer)
 				return
-			}
+			default:
+				if errors.Is(err, net.ErrClosed) {
+					s.log.Infof("Connection from %s is closed", s.peer)
+					return
+				}
 
-			s.log.Fatal("Read error: ", err)
-			return
+				s.log.Fatal("read error: ", err)
+				return
+			}
 		}
 
 		go func() {
-			msg := messages.ParseMessage(message)
-			handler := s.factory.CreateHandler(msg)
+			msg, err := messages.ParseMessage(message)
+
+			if err != nil {
+				s.log.Error(err)
+				s.conn.Close()
+				return
+			}
+
+			handler, err := s.factory.CreateHandler(msg)
+
+			if err != nil {
+				s.log.Error(err)
+				s.conn.Close()
+				return
+			}
+
 			handler.Handle(msg)
 		}()
 	}
