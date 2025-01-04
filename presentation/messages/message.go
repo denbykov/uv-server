@@ -18,7 +18,8 @@ const (
 )
 
 type Header struct {
-	Type Type `json:"type"`
+	Type Type    `json:"type"`
+	Uuid *string `json:"uuid"`
 }
 
 type Message struct {

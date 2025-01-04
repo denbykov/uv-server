@@ -1,7 +1,6 @@
 package presentation
 
 import (
-	"errors"
 	"server/common/loggers"
 	"server/config"
 	"server/presentation/handlers"
@@ -33,7 +32,7 @@ func (f *HandlerFactory) CreateHandler(
 
 	switch typ {
 	case messages.Download:
-		return nil, errors.New("Handler is not yet implemented")
+		return handlers.NewDownloadHandler(f.config), nil
 	default:
 		f.log.Fatalf("Unercognized message type %v", typ)
 	}

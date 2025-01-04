@@ -91,7 +91,13 @@ func (s *Session) readPump() {
 				return
 			}
 
-			handler.Handle(msg)
+			err = handler.Handle(msg)
+
+			if err != nil {
+				s.log.Error(err)
+				s.conn.Close()
+				return
+			}
 		}()
 	}
 }

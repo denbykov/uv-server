@@ -1,7 +1,9 @@
 package handlers
 
-import "server/presentation/messages"
+import (
+	"server/presentation/messages"
+)
 
 type Handler interface {
-	Handle(*messages.Message)
+	Handle(*messages.Message) error
 }
