@@ -91,7 +91,7 @@ func (s *Session) readPump() {
 				return
 			}
 
-			err = handler.Handle(msg)
+			err = handler.Handle(msg, s.send)
 
 			if err != nil {
 				s.log.Error(err)

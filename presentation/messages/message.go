@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"server/common"
 	"server/common/loggers"
 	"slices"
@@ -14,7 +13,9 @@ import (
 type Type int
 
 const (
-	Download Type = 1
+	Download          Type = 1
+	DownloadCompleted Type = 10
+	DownloadProgress  Type = 11
 )
 
 type Header struct {
@@ -68,6 +69,8 @@ func ParseMessage(data []byte) (*Message, error) {
 }
 
 func (m *Message) Serialize() []byte {
+	log := loggers.PresentationLogger
+
 	result := make([]byte, 0)
 
 	header, err := json.Marshal(m.Header)
