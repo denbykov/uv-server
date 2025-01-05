@@ -1,4 +1,3 @@
-import os
 from sys import argv
 from json import dumps
 from argparse import ArgumentParser

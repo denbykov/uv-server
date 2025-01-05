@@ -1,4 +1,4 @@
-package download
+package client
 
 type CompletedMessage struct {
 }

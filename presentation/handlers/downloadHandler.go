@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"server/business/workflows/download"
+	download_messages "server/business/workflows/download/client"
 	"server/common"
 	"server/common/loggers"
 	"server/config"
@@ -30,7 +31,7 @@ func NewDownloadHandler(config *config.Config) *DownloadHandler {
 }
 
 func (h *DownloadHandler) sendCompletedMessage(
-	message *download.CompletedMessage) {
+	message *download_messages.CompletedMessage) {
 	payload, err := json.Marshal(message)
 	if err != nil {
 		h.log.Fatalf("Failed to serialize message: %v", err)
@@ -48,7 +49,7 @@ func (h *DownloadHandler) sendCompletedMessage(
 }
 
 func (h *DownloadHandler) sendProgressMessage(
-	message *download.ProgressMessage) {
+	message *download_messages.ProgressMessage) {
 	payload, err := json.Marshal(message)
 	if err != nil {
 		h.log.Fatalf("Failed to serialize message: %v", err)
@@ -77,7 +78,7 @@ func (h *DownloadHandler) Handle(
 
 	h.uuid = message.Header.Uuid
 
-	request := &download.Request{}
+	request := &download_messages.Request{}
 	err := common.UnmarshalStrict(message.Payload, request)
 
 	if err != nil {
