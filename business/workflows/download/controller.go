@@ -2,6 +2,7 @@ package download
 
 import (
 	"server/business/workflows/download/client"
+	"server/business/workflows/download/data"
 	"server/common/loggers"
 	"server/config"
 
@@ -9,42 +10,53 @@ import (
 )
 
 type Controller struct {
-	log                  *logrus.Entry
-	config               *config.Config
-	sendProgressMessage  func(*client.ProgressMessage)
-	sendCompletedMessage func(*client.CompletedMessage)
+	log                 *logrus.Entry
+	config              *config.Config
+	sendProgressMessage func(*client.ProgressMessage)
+	sendDoneMessage     func(*client.DoneMessage)
+
+	downloader data.Downloader
 }
 
 func NewController(
 	config *config.Config,
 	sendProgressMessage func(*client.ProgressMessage),
-	sendCompletedMessage func(*client.CompletedMessage),
+	sendDoneMessage func(*client.DoneMessage),
+	downloader data.Downloader,
 ) *Controller {
 	object := &Controller{}
-	object.log = loggers.BusinessLogger
+	object.log = loggers.BusinessLogger.WithField(
+		"component", "DownloadingController")
 	object.config = config
 	object.sendProgressMessage = sendProgressMessage
-	object.sendCompletedMessage = sendCompletedMessage
+	object.sendDoneMessage = sendDoneMessage
+	object.downloader = downloader
+
+	object.downloader.RegisterOnProgress(object.onProgress)
 
 	return object
 }
 
-func (c *Controller) Run() error {
-	// progress1 := &client.ProgressMessage{
-	// 	Percentage: 30,
-	// }
+func (c *Controller) onProgress(msg *data.ProgressMessage) {
+	progress1 := &client.ProgressMessage{
+		Percentage: msg.Percentage,
+	}
 
-	// c.sendProgressMessage(progress1)
+	c.sendProgressMessage(progress1)
+}
 
-	// progress2 := &client.ProgressMessage{
-	// 	Percentage: 60,
-	// }
+func (c *Controller) Run(url string) {
+	c.log.Debugf("Downloading file: %v", url)
 
-	// c.sendProgressMessage(progress2)
+	filename, err := c.downloader.Download(url)
 
-	// completed := &client.CompletedMessage{}
+	if err != nil {
+		c.log.Errorf("Donwloading failed: %v", err)
+	}
 
-	// c.sendCompletedMessage(completed)
+	_ = filename
 
-	return nil
+	c.sendDoneMessage(&client.DoneMessage{})
+
+	c.log.Debugf("Downloading done for file: %v", url)
 }

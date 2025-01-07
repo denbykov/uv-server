@@ -1,1 +1,2 @@
 port: 3000
+ffmpegLocation: "ffmpeg-n7.1-latest-win64-gpl-7.1\\bin"

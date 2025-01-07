@@ -9,6 +9,7 @@ import (
 	"server/common"
 	"server/common/loggers"
 	"server/config"
+	"server/data"
 	"server/presentation/messages"
 
 	"github.com/sirupsen/logrus"
@@ -23,15 +24,18 @@ type DownloadHandler struct {
 
 func NewDownloadHandler(config *config.Config) *DownloadHandler {
 	object := &DownloadHandler{}
-	object.log = loggers.PresentationLogger
+	object.log = loggers.PresentationLogger.WithField(
+		"component", "DownloadHandler")
 	object.config = config
 	object.uuid = nil
 
 	return object
 }
 
-func (h *DownloadHandler) sendCompletedMessage(
-	message *download_messages.CompletedMessage) {
+func (h *DownloadHandler) sendDoneMessage(
+	message *download_messages.DoneMessage) {
+	h.log.Tracef("Sending done message %v", message)
+
 	payload, err := json.Marshal(message)
 	if err != nil {
 		h.log.Fatalf("Failed to serialize message: %v", err)
@@ -50,6 +54,8 @@ func (h *DownloadHandler) sendCompletedMessage(
 
 func (h *DownloadHandler) sendProgressMessage(
 	message *download_messages.ProgressMessage) {
+	h.log.Tracef("Sending progress message %v", message)
+
 	payload, err := json.Marshal(message)
 	if err != nil {
 		h.log.Fatalf("Failed to serialize message: %v", err)
@@ -70,6 +76,8 @@ func (h *DownloadHandler) Handle(
 	message *messages.Message,
 	send chan *messages.Message,
 ) error {
+	h.log.Debugf("Handling message %v", message)
+
 	h.send = send
 
 	if message.Header.Uuid == nil {
@@ -88,13 +96,13 @@ func (h *DownloadHandler) Handle(
 	controller := download.NewController(
 		h.config,
 		h.sendProgressMessage,
-		h.sendCompletedMessage)
+		h.sendDoneMessage,
+		data.NewDownloader(h.config),
+	)
 
-	err = controller.Run()
+	controller.Run(*request.Url)
 
-	if err != nil {
-		return fmt.Errorf("workflow failed: %v", err)
-	}
+	h.log.Debugf("Message handling completed %v", message)
 
 	return nil
 }
