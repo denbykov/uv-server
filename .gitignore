@@ -1,6 +1,5 @@
 **/logs
 **/debug
-**/.vscode
 **/__debug*
 **/venv
 **/dist
