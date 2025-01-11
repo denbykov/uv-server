@@ -85,7 +85,7 @@ func (d *Downloader) Download(url string) (string, error) {
 		d.log.Fatal(err)
 	}
 
-	script_path := path.Join(wd, d.config.ScriptsLocation, "downloader.exe")
+	script_path := path.Join(wd, d.config.ScriptsLocation, "downloader")
 	storage_location := "."
 
 	process := exec.Command(
