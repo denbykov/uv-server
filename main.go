@@ -1,9 +1,14 @@
 package main
 
 import (
+	"database/sql"
+
+	_ "github.com/mattn/go-sqlite3"
+
 	"path/filepath"
 	"server/common/loggers"
 	"server/config"
+	"server/data"
 	"server/presentation"
 )
 
@@ -11,15 +16,26 @@ func main() {
 	loggers.Init("logs", "log.txt")
 	defer loggers.CloseLogFile()
 
-	loggers.ApplicationLogger.Info("Starting...")
+	log := loggers.ApplicationLogger
+
+	log.Info("Starting...")
 
 	config := config.NewConfig(filepath.Join("config", "config.yaml"))
 
+	db, err := sql.Open("sqlite3", "foo.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	migrator := data.NewMigrator(config,
+		data.NewMigrationRepositry(db))
+	migrator.MigrateIfNeeded()
+
 	server := presentation.NewServer(config)
 
-	err := server.Run()
+	err = server.Run()
 
 	if err != nil {
-		loggers.PresentationLogger.Error(err)
+		log.Fatal(err)
 	}
 }
