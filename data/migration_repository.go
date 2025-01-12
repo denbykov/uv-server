@@ -3,14 +3,9 @@ package data
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"server/common/loggers"
 
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	AppTable string = "app"
 )
 
 type MigrationRepository struct {
@@ -31,16 +26,15 @@ func NewMigrationRepositry(db *sql.DB) *MigrationRepository {
 // Gets
 func (r *MigrationRepository) GetVersion() (int, error) {
 	statement := `
-	select name from sqlite_master 
-	where type='table' 
-	and name=$1; 
+	SELECT name FROM sqlite_master
+	WHERE type='table'
+	AND name=$1;
 	`
 
 	r.log.Debugf("Executing statement: %v", statement)
 
-	rows, err := r.db.Query(statement, AppTable)
-
-	r.log.Debugf("Executing statement: %v", statement)
+	var dummy interface{}
+	err := r.db.QueryRow(statement, "app").Scan(&dummy)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -49,25 +43,66 @@ func (r *MigrationRepository) GetVersion() (int, error) {
 
 		return 0,
 			fmt.Errorf("failed to check for %v table existance: %v",
-				AppTable,
+				"app",
 				err)
 	}
 
-	defer rows.Close()
+	statement = `
+	SELECT db_version FROM app; 
+	`
+
+	r.log.Debugf("Executing statement: %v", statement)
 
 	var version int
+	err = r.db.QueryRow(statement).Scan(&version)
 
-	for rows.Next() {
-		err = rows.Scan(&version)
-		if err != nil {
-			log.Fatal(err)
-		}
+	if err != nil {
+		return 0, fmt.Errorf("failed to get app version: %v", err)
 	}
 
 	return version, nil
 }
 
-// func From0to1() error {
+func (r *MigrationRepository) From0to1() error {
+	statement := `
+	CREATE TABLE app (
+		db_version INTEGER NOT NULL
+	)
+	`
+
+	r.log.Debugf("Executing statement: %v", statement)
+
+	_, err := r.db.Exec(statement)
+
+	if err != nil {
+		return fmt.Errorf("failed to create app table: %v", err)
+	}
+
+	statement = `
+	INSERT INTO app (db_version)
+	VALUES($1)
+	`
+
+	_, err = r.db.Exec(statement, 1)
+
+	if err != nil {
+		return fmt.Errorf("failed to insert app record: %v", err)
+	}
+
+	return nil
+}
+
+// func (r *MigrationRepository) From1to2() error {
+// 	statement := `
+// 	create table files (
+// 		person_id INTEGER PRIMARY KEY,
+// 		path VARCHAR(255) NULL UNIQUE,
+// 		source_url VARCHAR(255) NOT NULL UNIQUE,
+// 		status VARCHAR(1) NOT NULL,
+// 		added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+// 		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+// 	)
+// 	`
 
 // 	return nil
 // }
