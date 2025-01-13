@@ -118,7 +118,9 @@ outerLoop:
 
 		if err != nil {
 			d.log.Errorf("failed to read message from script: %v", err)
-			process.Process.Kill()
+			if killErr := process.Process.Kill(); killErr != nil {
+				d.log.Errorf("failed to kill process: %v", killErr)
+			}
 			return "", errors.New("downloading failed")
 		}
 
@@ -126,7 +128,9 @@ outerLoop:
 
 		if err != nil {
 			d.log.Errorf("failed to parse message from script: %v", err)
-			process.Process.Kill()
+			if killErr := process.Process.Kill(); killErr != nil {
+				d.log.Errorf("failed to kill process: %v", killErr)
+			}
 			return "", errors.New("downloading failed")
 		}
 
@@ -134,7 +138,9 @@ outerLoop:
 
 		if !ok {
 			d.log.Errorf("message from does not contain \"type\" field")
-			process.Process.Kill()
+			if killErr := process.Process.Kill(); killErr != nil {
+				d.log.Errorf("failed to kill process: %v", killErr)
+			}
 			return "", errors.New("downloading failed")
 		}
 
@@ -144,7 +150,9 @@ outerLoop:
 			if err != nil {
 				d.log.Errorf("failed to handle progress message: %v, reason: %v",
 					parsedMessage, err)
-				process.Process.Kill()
+				if killErr := process.Process.Kill(); killErr != nil {
+					d.log.Errorf("failed to kill process: %v", killErr)
+				}
 				return "", errors.New("downloading failed")
 			}
 		case DownloadingDone:
@@ -153,7 +161,9 @@ outerLoop:
 			if err != nil {
 				d.log.Errorf("failed to handle progress message: %v, reason: %v",
 					parsedMessage, err)
-				process.Process.Kill()
+				if killErr := process.Process.Kill(); killErr != nil {
+					d.log.Errorf("failed to kill process: %v", killErr)
+				}
 				return "", errors.New("downloading failed")
 			}
 
@@ -161,7 +171,9 @@ outerLoop:
 			break outerLoop
 		default:
 			d.log.Errorf("no message handler for type: %v", err)
-			process.Process.Kill()
+			if killErr := process.Process.Kill(); killErr != nil {
+				d.log.Errorf("failed to kill process: %v", killErr)
+			}
 			return "", errors.New("downloading failed")
 		}
 	}

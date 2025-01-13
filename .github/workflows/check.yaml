@@ -1,0 +1,52 @@
+name: ci-debug
+run-name: ci-debug
+on:
+  pull_request:
+    branches:
+      - integration
+      - 'releases/**'
+      - 'uvs-*'
+  push:
+    branches:
+      - integration
+      - 'releases/**'
+      - 'uvs-*'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '^1.23.4'
+      - name: Install dependencies
+        run: go get .
+      - name: Build
+        run: go build -v ./...
+  go-lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '^1.23.4'
+          cache: false
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: Run golangci-lint
+        run: golangci-lint run ./...
+  python-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: check
+          src: './scripts'

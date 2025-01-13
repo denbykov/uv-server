@@ -50,9 +50,14 @@ func (s *Session) readPump() {
 		s.conn.Close()
 	}()
 
-	s.conn.SetReadDeadline(time.Now().Add(pongWait))
+	if err := s.conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+		s.log.Error("SetReadDeadline error: ", err)
+		return
+	}
 	s.conn.SetPongHandler(func(string) error {
-		s.conn.SetReadDeadline(time.Now().Add(pongWait))
+		if err := s.conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+			s.log.Error("SetReadDeadline error: ", err)
+		}
 		return nil
 	})
 
@@ -113,7 +118,9 @@ func (s *Session) writePump() {
 		select {
 		case message, ok := <-s.send:
 			if !ok {
-				s.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				if err := s.conn.WriteMessage(websocket.CloseMessage, []byte{}); err != nil {
+					s.log.Error("WriteMessage error: ", err)
+				}
 				return
 			}
 
@@ -124,13 +131,19 @@ func (s *Session) writePump() {
 
 			data := message.Serialize()
 
-			w.Write(data)
+			if _, err := w.Write(data); err != nil {
+				s.log.Error("Write error: ", err)
+				return
+			}
 
 			if err := w.Close(); err != nil {
 				return
 			}
 		case <-ticker.C:
-			s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := s.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				s.log.Error("SetWriteDeadline error: ", err)
+				return
+			}
 			if err := s.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

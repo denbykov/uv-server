@@ -52,7 +52,8 @@ def download_file(url: str, dir: str, ffmpeg_location: str):
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        error_code = ydl.download(url)
+        # error_code = ydl.download(url)
+        ydl.download([url])
     
     return filename[:filename.rfind('.')] + '.mp3'
 
