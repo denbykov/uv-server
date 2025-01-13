@@ -58,6 +58,8 @@ jobs:
 
     - name: Post Analysis Summary
       if: always()
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         echo "## CodeQL Analysis Report for ${{ matrix.language }}" >> analysis-summary.txt
         echo "Analysis complete for language: ${{ matrix.language }}." >> analysis-summary.txt
