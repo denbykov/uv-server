@@ -119,7 +119,7 @@ func (s *Session) writePump() {
 		case message, ok := <-s.send:
 			if !ok {
 				if err := s.conn.WriteMessage(websocket.CloseMessage, []byte{}); err != nil {
-					s.log.Error("WriteMessage error: ", err)
+					s.log.Fatal("WriteMessage error: ", err)
 				}
 				return
 			}
@@ -141,7 +141,7 @@ func (s *Session) writePump() {
 			}
 		case <-ticker.C:
 			if err := s.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-				s.log.Error("SetWriteDeadline error: ", err)
+				s.log.Fatal("SetWriteDeadline error: ", err)
 				return
 			}
 			if err := s.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
