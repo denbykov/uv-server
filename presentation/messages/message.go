@@ -63,7 +63,7 @@ func ParseMessage(data []byte) (*Message, error) {
 	}
 
 	message.Payload = data[offset:]
-	offset += int(headerSize)
+	// offset += int(headerSize)
 
 	return message, nil
 }
