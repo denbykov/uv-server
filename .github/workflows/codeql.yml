@@ -35,27 +35,22 @@ jobs:
           - python
 
     steps:
-      # Клонуємо репозиторій
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Ініціалізуємо CodeQL
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
 
-      # Автоматична побудова проєкту
       - name: Autobuild
         uses: github/codeql-action/autobuild@v2
 
-      # Виконуємо CodeQL аналіз
       - name: Run CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
 
-      # Генеруємо звіт і додаємо коментар до пул-реквесту
       - name: Post Analysis Summary
         if: always()
         env:
