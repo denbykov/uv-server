@@ -1,12 +1,13 @@
 package presentation
 
 import (
-	"server/common/loggers"
-	"server/config"
-	"server/presentation/handlers"
-	"server/presentation/messages"
-
 	"github.com/sirupsen/logrus"
+
+	"uv_server/internal/uv_server/common/loggers"
+	"uv_server/internal/uv_server/config"
+
+	"uv_server/internal/uv_server/presentation/handlers"
+	"uv_server/internal/uv_server/presentation/messages"
 )
 
 type HandlerFactory struct {

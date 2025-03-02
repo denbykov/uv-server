@@ -3,13 +3,14 @@ package presentation
 import (
 	"errors"
 	"net"
-	"server/common/loggers"
-	"server/config"
-	"server/presentation/messages"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
+
+	"uv_server/internal/uv_server/common/loggers"
+	"uv_server/internal/uv_server/config"
+	"uv_server/internal/uv_server/presentation/messages"
 )
 
 const (

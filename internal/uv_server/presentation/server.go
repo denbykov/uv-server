@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"server/common/loggers"
-	"server/config"
 
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
+
+	"uv_server/internal/uv_server/common/loggers"
+	"uv_server/internal/uv_server/config"
 )
 
 var upgrader = websocket.Upgrader{

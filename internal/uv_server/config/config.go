@@ -2,10 +2,11 @@ package config
 
 import (
 	"os"
-	"server/common"
-	"server/common/loggers"
 
 	"github.com/sirupsen/logrus"
+
+	"uv_server/internal/uv_server/common"
+	"uv_server/internal/uv_server/common/loggers"
 )
 
 type Config struct {

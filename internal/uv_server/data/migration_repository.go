@@ -3,9 +3,10 @@ package data
 import (
 	"database/sql"
 	"fmt"
-	"server/common/loggers"
 
 	"github.com/sirupsen/logrus"
+
+	"uv_server/internal/uv_server/common/loggers"
 )
 
 type MigrationRepository struct {

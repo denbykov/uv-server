@@ -7,11 +7,12 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	business_data "server/business/workflows/download/data"
-	"server/common/loggers"
-	"server/config"
 
 	"github.com/sirupsen/logrus"
+
+	business_data "uv_server/internal/uv_server/business/workflows/download/data"
+	"uv_server/internal/uv_server/common/loggers"
+	"uv_server/internal/uv_server/config"
 )
 
 type mtype int

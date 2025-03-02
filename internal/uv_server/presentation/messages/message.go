@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"server/common"
-	"server/common/loggers"
 	"slices"
+
+	"uv_server/internal/uv_server/common"
+	"uv_server/internal/uv_server/common/loggers"
 )
 
 type Type int

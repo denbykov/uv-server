@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"server/business/workflows/download"
-	download_messages "server/business/workflows/download/client"
-	"server/common"
-	"server/common/loggers"
-	"server/config"
-	"server/data"
-	"server/presentation/messages"
 
 	"github.com/sirupsen/logrus"
+
+	"uv_server/internal/uv_server/business/workflows/download"
+	download_messages "uv_server/internal/uv_server/business/workflows/download/client"
+	"uv_server/internal/uv_server/common"
+	"uv_server/internal/uv_server/common/loggers"
+	"uv_server/internal/uv_server/config"
+	"uv_server/internal/uv_server/data"
+	"uv_server/internal/uv_server/presentation/messages"
 )
 
 type DownloadHandler struct {

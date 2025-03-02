@@ -6,7 +6,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "main.go",
+            "program": "./cmd/uv_server/uv_server.go",
             "cwd": "debug",
         }
     ]

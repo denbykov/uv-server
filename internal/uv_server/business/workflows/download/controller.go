@@ -1,12 +1,12 @@
 package download
 
 import (
-	"server/business/workflows/download/client"
-	"server/business/workflows/download/data"
-	"server/common/loggers"
-	"server/config"
-
 	"github.com/sirupsen/logrus"
+
+	"uv_server/internal/uv_server/business/workflows/download/client"
+	"uv_server/internal/uv_server/business/workflows/download/data"
+	"uv_server/internal/uv_server/common/loggers"
+	"uv_server/internal/uv_server/config"
 )
 
 type Controller struct {
