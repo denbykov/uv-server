@@ -118,7 +118,7 @@ func (s *Session) writePump() {
 				return
 			}
 
-			w, err := s.conn.NextWriter(websocket.TextMessage)
+			w, err := s.conn.NextWriter(websocket.BinaryMessage)
 			if err != nil {
 				s.log.Fatal(err)
 			}

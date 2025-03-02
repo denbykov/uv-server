@@ -53,7 +53,7 @@ func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Could add session removal later, but as I'm expecting to have
-	// only one client at the moment I do not really care
+	// only one client at the moment so I do not really care
 	session := NewSession(s.config, ws, r.Host, s.factory)
 	s.sessions = append(s.sessions, session)
 	session.Run()

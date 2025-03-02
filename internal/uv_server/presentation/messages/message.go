@@ -19,6 +19,19 @@ const (
 	DownloadProgress  Type = 11
 )
 
+func (t Type) String() string {
+	switch t {
+	case Download:
+		return "Download"
+	case DownloadCompleted:
+		return "DownloadCompleted"
+	case DownloadProgress:
+		return "DownloadProgress"
+	default:
+		return fmt.Sprintf("Unknown: %d", t)
+	}
+}
+
 type Header struct {
 	Type Type    `json:"type"`
 	Uuid *string `json:"uuid"`
