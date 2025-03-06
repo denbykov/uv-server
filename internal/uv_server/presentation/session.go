@@ -28,7 +28,8 @@ type Session struct {
 	conn    *websocket.Conn
 	peer    string
 	factory *JobFactory
-	out     chan *jobs.JobMessage
+
+	job_out chan *jobs.JobMessage
 
 	jobs_mx sync.Mutex
 	jobs    map[string]jobs.Job
@@ -46,7 +47,7 @@ func NewSession(
 	object.conn = conn
 	object.peer = peer
 	object.factory = factory
-	object.out = make(chan *jobs.JobMessage, messageLimit)
+	object.job_out = make(chan *jobs.JobMessage, messageLimit)
 
 	object.jobs_mx = sync.Mutex{}
 	object.jobs = make(map[string]jobs.Job)
@@ -103,7 +104,8 @@ func (s *Session) readPump() {
 			if ok {
 				job.Notify(msg)
 			} else {
-				job, err := s.factory.CreateJob(msg, s.out)
+				s.log.Tracef("creating new job for: %v", *msg.Header.Uuid)
+				job, err := s.factory.CreateJob(msg, s.job_out)
 
 				if err != nil {
 					s.log.Error(err)
@@ -112,12 +114,6 @@ func (s *Session) readPump() {
 				}
 
 				go job.Run(msg)
-
-				if err != nil {
-					s.log.Error(err)
-					s.conn.Close()
-					return
-				}
 
 				s.jobs_mx.Lock()
 				s.jobs[*msg.Header.Uuid] = job
@@ -136,9 +132,10 @@ func (s *Session) writePump() {
 
 	for {
 		select {
-		case j_message, ok := <-s.out:
+		case j_message, ok := <-s.job_out:
 			if j_message.Done {
 				s.jobs_mx.Lock()
+				s.log.Tracef("removing job: %v", *j_message.Msg.Header.Uuid)
 				delete(s.jobs, *j_message.Msg.Header.Uuid)
 				s.jobs_mx.Unlock()
 			}

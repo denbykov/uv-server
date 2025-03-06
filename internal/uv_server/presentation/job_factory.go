@@ -23,7 +23,7 @@ func NewJobFactory(config *config.Config) *JobFactory {
 }
 
 func (f *JobFactory) CreateJob(
-	message *messages.Message, session_out chan *jobs.JobMessage) (jobs.Job, error) {
+	message *messages.Message, session_in chan *jobs.JobMessage) (jobs.Job, error) {
 	typ := message.Header.Type
 
 	f.log.Debugf("Creating Job for message type %v", typ)
@@ -31,8 +31,8 @@ func (f *JobFactory) CreateJob(
 	var Job jobs.Job = nil
 
 	switch typ {
-	case messages.Download:
-		return jobs.NewDownloadingJob(f.config, session_out, *message.Header.Uuid), nil
+	case messages.DownloadingRequest:
+		return jobs.NewDownloadingJob(*message.Header.Uuid, f.config, session_in), nil
 	default:
 		f.log.Fatalf("Unercognized message type %v", typ)
 	}
