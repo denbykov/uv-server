@@ -3,6 +3,7 @@ package presentation
 import (
 	"errors"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -10,6 +11,7 @@ import (
 
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
+	"uv_server/internal/uv_server/presentation/jobs"
 	"uv_server/internal/uv_server/presentation/messages"
 )
 
@@ -25,15 +27,18 @@ type Session struct {
 	config  *config.Config
 	conn    *websocket.Conn
 	peer    string
-	factory *HandlerFactory
-	send    chan *messages.Message
+	factory *JobFactory
+	out     chan *jobs.JobMessage
+
+	jobs_mx sync.Mutex
+	jobs    map[string]jobs.Job
 }
 
 func NewSession(
 	config *config.Config,
 	conn *websocket.Conn,
 	peer string,
-	factory *HandlerFactory) *Session {
+	factory *JobFactory) *Session {
 	object := &Session{}
 
 	object.log = loggers.PresentationLogger
@@ -41,7 +46,10 @@ func NewSession(
 	object.conn = conn
 	object.peer = peer
 	object.factory = factory
-	object.send = make(chan *messages.Message, messageLimit)
+	object.out = make(chan *jobs.JobMessage, messageLimit)
+
+	object.jobs_mx = sync.Mutex{}
+	object.jobs = make(map[string]jobs.Job)
 
 	return object
 }
@@ -51,10 +59,13 @@ func (s *Session) readPump() {
 		s.conn.Close()
 	}()
 
-	s.conn.SetReadDeadline(time.Now().Add(pongWait))
+	err := s.conn.SetReadDeadline(time.Now().Add(pongWait))
+	if err != nil {
+		s.log.Fatalf("failed to set read dead line: %v", err)
+	}
+
 	s.conn.SetPongHandler(func(string) error {
-		s.conn.SetReadDeadline(time.Now().Add(pongWait))
-		return nil
+		return s.conn.SetReadDeadline(time.Now().Add(pongWait))
 	})
 
 	for {
@@ -62,11 +73,11 @@ func (s *Session) readPump() {
 		if err != nil {
 			switch err.(type) {
 			case *websocket.CloseError:
-				s.log.Infof("Connection from %s is closed", s.peer)
+				s.log.Infof("connection from %s is closed", s.peer)
 				return
 			default:
 				if errors.Is(err, net.ErrClosed) {
-					s.log.Infof("Connection from %s is closed", s.peer)
+					s.log.Infof("connection from %s is closed", s.peer)
 					return
 				}
 
@@ -77,6 +88,7 @@ func (s *Session) readPump() {
 
 		go func() {
 			msg, err := messages.ParseMessage(message)
+			_ = msg
 
 			if err != nil {
 				s.log.Error(err)
@@ -84,20 +96,32 @@ func (s *Session) readPump() {
 				return
 			}
 
-			handler, err := s.factory.CreateHandler(msg)
+			s.jobs_mx.Lock()
+			job, ok := s.jobs[*msg.Header.Uuid]
+			s.jobs_mx.Unlock()
 
-			if err != nil {
-				s.log.Error(err)
-				s.conn.Close()
-				return
-			}
+			if ok {
+				job.Notify(msg)
+			} else {
+				job, err := s.factory.CreateJob(msg, s.out)
 
-			err = handler.Handle(msg, s.send)
+				if err != nil {
+					s.log.Error(err)
+					s.conn.Close()
+					return
+				}
 
-			if err != nil {
-				s.log.Error(err)
-				s.conn.Close()
-				return
+				go job.Run(msg)
+
+				if err != nil {
+					s.log.Error(err)
+					s.conn.Close()
+					return
+				}
+
+				s.jobs_mx.Lock()
+				s.jobs[*msg.Header.Uuid] = job
+				s.jobs_mx.Unlock()
 			}
 		}()
 	}
@@ -112,9 +136,18 @@ func (s *Session) writePump() {
 
 	for {
 		select {
-		case message, ok := <-s.send:
+		case j_message, ok := <-s.out:
+			if j_message.Done {
+				s.jobs_mx.Lock()
+				delete(s.jobs, *j_message.Msg.Header.Uuid)
+				s.jobs_mx.Unlock()
+			}
+
 			if !ok {
-				s.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				err := s.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				if err != nil {
+					s.log.Errorf("failed to write message: %v", err)
+				}
 				return
 			}
 
@@ -123,15 +156,23 @@ func (s *Session) writePump() {
 				s.log.Fatal(err)
 			}
 
+			message := j_message.Msg
 			data := message.Serialize()
 
-			w.Write(data)
+			_, err = w.Write(data)
+			if err != nil {
+				s.log.Errorf("failed to write message: %v", err)
+			}
 
 			if err := w.Close(); err != nil {
 				return
 			}
 		case <-ticker.C:
-			s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			err := s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err != nil {
+				s.log.Fatalf("failed to set write dead line: %v", err)
+			}
+
 			if err := s.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

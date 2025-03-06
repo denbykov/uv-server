@@ -19,7 +19,7 @@ var upgrader = websocket.Upgrader{
 type Server struct {
 	log      *logrus.Entry
 	config   *config.Config
-	factory  *HandlerFactory
+	factory  *JobFactory
 	sessions []*Session
 }
 
@@ -28,7 +28,7 @@ func NewServer(config *config.Config) *Server {
 
 	object.log = loggers.PresentationLogger
 	object.config = config
-	object.factory = NewHandlerFactory(config)
+	object.factory = NewJobFactory(config)
 	object.sessions = make([]*Session, 0)
 
 	return object

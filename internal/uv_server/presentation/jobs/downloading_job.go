@@ -2,7 +2,7 @@ package jobs
 
 import (
 	"context"
-	"log"
+	"time"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 	"uv_server/internal/uv_server/presentation/messages"
@@ -16,7 +16,7 @@ type DownloadingJob struct {
 	// out
 
 	session_in  chan *messages.Message
-	session_out chan *messages.Message
+	session_out chan *JobMessage
 
 	log    *logrus.Entry
 	config *config.Config
@@ -27,7 +27,7 @@ type DownloadingJob struct {
 
 func NewDownloadingJob(
 	config *config.Config,
-	session_out chan *messages.Message,
+	session_out chan *JobMessage,
 	uuid string,
 ) *DownloadingJob {
 	object := &DownloadingJob{}
@@ -45,15 +45,22 @@ func NewDownloadingJob(
 	return object
 }
 
-func (j *DownloadingJob) Run(ctx context.Context, cancel context.CancelFunc, m *messages.Message) error {
-	defer cancel()
+func (j *DownloadingJob) Run(m *messages.Message) {
+	j.log.Tracef("Run: handling message %v", m)
 
-	j.ctx = ctx
-	j.cancel = cancel
+	j.ctx, j.cancel = context.WithTimeout(context.Background(), 20*time.Second)
+	defer j.cancel()
 
 	if m.Header.Type != messages.Download {
-		log.Fatalf("unextected message type, got %v instead of Download", m.Header.Type)
+		j.log.Fatalf("Run: unextected message type, got %v instead of Download", m.Header.Type)
 	}
+}
 
-	return nil
+func (j *DownloadingJob) Notify(m *messages.Message) {
+	j.log.Tracef("Notify: handling message %v", m)
+
+	if m.Header.Type == messages.Download {
+		j.log.Warnf("Notify: unextected start job message %v", m.Header.Type)
+		return
+	}
 }
