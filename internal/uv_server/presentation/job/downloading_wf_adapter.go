@@ -2,10 +2,12 @@ package job
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"uv_server/internal/uv_server/business/workflows/downloading"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
+	"uv_server/internal/uv_server/presentation/messages"
 
 	"github.com/sirupsen/logrus"
 )
@@ -55,4 +57,11 @@ func (wa *DownloadingWfAdapter) RunWf(
 	wg *sync.WaitGroup,
 ) {
 	wa.wf.Run(wg)
+}
+
+func (wa *DownloadingWfAdapter) HandleMessage(
+	message *messages.Message,
+) error {
+	wa.log.Tracef("handling message: %v", message.Header.Type)
+	return fmt.Errorf("unexpected message %v", message.Header.Type)
 }

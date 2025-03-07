@@ -105,7 +105,30 @@ func (j *Job) active(
 				j.canceled(ctx, wg)
 				return
 			}
-			_ = msg
+
+			err := j.wf_adatapter.HandleMessage(msg)
+
+			if err != nil {
+				j.log.Errorf("failed to handle message: %v", err)
+
+				payload, err := json.Marshal(commonJobMessages.Error{Reason: err.Error()})
+				if err != nil {
+					j.log.Fatalf("failed to serialize message: %v", err)
+				}
+
+				err_msg := Message{
+					Msg: &messages.Message{
+						Header: &messages.Header{
+							Uuid: &j.uuid,
+							Type: messages.Error,
+						},
+						Payload: payload,
+					},
+					Done: false,
+				}
+
+				j.session_in <- &err_msg
+			}
 		case msg := <-j.wf_out:
 			_ = msg
 		}

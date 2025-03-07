@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 	"uv_server/internal/uv_server/config"
+	"uv_server/internal/uv_server/presentation/messages"
 )
 
 type WorkflowAdapter interface {
@@ -16,7 +17,6 @@ type WorkflowAdapter interface {
 		wf_out chan interface{},
 	)
 
-	RunWf(
-		wg *sync.WaitGroup,
-	)
+	RunWf(wg *sync.WaitGroup)
+	HandleMessage(message *messages.Message) error
 }
