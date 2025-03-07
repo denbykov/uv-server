@@ -14,22 +14,28 @@ import (
 type Type int
 
 const (
-	DownloadingRequest   Type = 1
-	DownloadingCompleted Type = 10
-	DownloadingProgress  Type = 11
-	DownloadingCancelled Type = 12
+	DownloadingRequest  Type = 1
+	DownloadingProgress Type = 10
+	CancelRequest       Type = 2
+	Canceled            Type = 3
+	Error               Type = 4
+	Done                Type = 5
 )
 
 func (t Type) String() string {
 	switch t {
 	case DownloadingRequest:
 		return "DownloadingRequest"
-	case DownloadingCompleted:
-		return "DownloadingCompleted"
 	case DownloadingProgress:
 		return "DownloadingProgress"
-	case DownloadingCancelled:
-		return "DownloadingCancelled"
+	case CancelRequest:
+		return "CancelRequest"
+	case Canceled:
+		return "canceled"
+	case Error:
+		return "Error"
+	case Done:
+		return "Done"
 	default:
 		return fmt.Sprintf("Unknown: %d", t)
 	}

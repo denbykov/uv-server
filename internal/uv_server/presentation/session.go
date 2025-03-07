@@ -11,7 +11,7 @@ import (
 
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
-	"uv_server/internal/uv_server/presentation/jobs"
+	"uv_server/internal/uv_server/presentation/job"
 	"uv_server/internal/uv_server/presentation/messages"
 )
 
@@ -27,30 +27,30 @@ type Session struct {
 	config  *config.Config
 	conn    *websocket.Conn
 	peer    string
-	factory *JobFactory
+	builder *JobBuilder
 
-	job_out chan *jobs.JobMessage
+	job_out chan *job.Message
 
 	jobs_mx sync.Mutex
-	jobs    map[string]jobs.Job
+	jobs    map[string]*job.Job
 }
 
 func NewSession(
 	config *config.Config,
 	conn *websocket.Conn,
 	peer string,
-	factory *JobFactory) *Session {
+	builder *JobBuilder) *Session {
 	object := &Session{}
 
 	object.log = loggers.PresentationLogger
 	object.config = config
 	object.conn = conn
 	object.peer = peer
-	object.factory = factory
-	object.job_out = make(chan *jobs.JobMessage, messageLimit)
+	object.builder = builder
+	object.job_out = make(chan *job.Message, messageLimit)
 
 	object.jobs_mx = sync.Mutex{}
-	object.jobs = make(map[string]jobs.Job)
+	object.jobs = make(map[string]*job.Job)
 
 	return object
 }
@@ -87,39 +87,45 @@ func (s *Session) readPump() {
 			}
 		}
 
-		go func() {
-			msg, err := messages.ParseMessage(message)
-			_ = msg
+		go s.handleIncommingMessage(message)
+	}
+}
 
-			if err != nil {
-				s.log.Error(err)
-				s.conn.Close()
-				return
-			}
+func (s *Session) handleIncommingMessage(raw_msg []byte) {
+	msg, err := messages.ParseMessage(raw_msg)
 
-			s.jobs_mx.Lock()
-			job, ok := s.jobs[*msg.Header.Uuid]
-			s.jobs_mx.Unlock()
+	if err != nil {
+		s.log.Error(err)
+		s.conn.Close()
+		return
+	}
 
-			if ok {
-				job.Notify(msg)
-			} else {
-				s.log.Tracef("creating new job for: %v", *msg.Header.Uuid)
-				job, err := s.factory.CreateJob(msg, s.job_out)
+	s.jobs_mx.Lock()
+	job, ok := s.jobs[*msg.Header.Uuid]
+	s.jobs_mx.Unlock()
 
-				if err != nil {
-					s.log.Error(err)
-					s.conn.Close()
-					return
-				}
+	if ok {
+		job.Notify(msg)
+	} else {
+		if msg.Header.Type == messages.CancelRequest {
+			s.log.Debugf("received cancel request for non existing job: %v", *msg.Header.Uuid)
+			return
+		}
 
-				go job.Run(msg)
+		s.log.Tracef("creating new job for: %v", *msg.Header.Uuid)
+		job, err := s.builder.CreateJob(msg, s.job_out)
 
-				s.jobs_mx.Lock()
-				s.jobs[*msg.Header.Uuid] = job
-				s.jobs_mx.Unlock()
-			}
-		}()
+		if err != nil {
+			s.log.Error(err)
+			s.conn.Close()
+			return
+		}
+
+		go job.Run(msg)
+
+		s.jobs_mx.Lock()
+		s.jobs[*msg.Header.Uuid] = job
+		s.jobs_mx.Unlock()
 	}
 }
 

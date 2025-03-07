@@ -1,10 +1,11 @@
-package jobs
+package job
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
-	"uv_server/internal/uv_server/business/workflows/downloading"
+	commonJobMessages "uv_server/internal/uv_server/business/common_job_messages"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 	"uv_server/internal/uv_server/presentation/messages"
@@ -12,30 +13,37 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type DownloadingJob struct {
+type Message struct {
+	Msg  *messages.Message
+	Done bool
+}
+
+type Job struct {
 	uuid string
 
-	session_in  chan<- *JobMessage
+	session_in  chan<- *Message
 	session_out chan *messages.Message
 
 	log    *logrus.Entry
 	config *config.Config
 
-	wf     *downloading.DownloadingWf
 	wf_in  chan interface{}
 	wf_out chan interface{}
+
+	wf_adatapter WorkflowAdapter
 }
 
-func NewDownloadingJob(
+func NewJob(
 	uuid string,
 	config *config.Config,
-	session_in chan<- *JobMessage,
-) *DownloadingJob {
-	object := &DownloadingJob{}
+	session_in chan<- *Message,
+	wf_adatapter WorkflowAdapter,
+) *Job {
+	object := &Job{}
 
 	object.log = loggers.PresentationLogger.WithFields(
 		logrus.Fields{
-			"component": "DownloadingJob",
+			"component": "Job",
 			"uuid":      uuid})
 	object.config = config
 	object.uuid = uuid
@@ -43,21 +51,20 @@ func NewDownloadingJob(
 
 	object.session_out = make(chan *messages.Message, 1)
 
+	object.wf_in = make(chan interface{}, 1)
+	object.wf_out = make(chan interface{}, 1)
+
+	object.wf_adatapter = wf_adatapter
+
 	return object
 }
 
-func (j *DownloadingJob) Notify(m *messages.Message) {
+func (j *Job) Notify(m *messages.Message) {
 	j.log.Tracef("Notify: handling message %v", m)
-
-	if m.Header.Type == messages.DownloadingRequest {
-		j.log.Warnf("Notify: unextected start job message %v", m.Header.Type)
-		return
-	}
-
 	j.session_out <- m
 }
 
-func (j *DownloadingJob) Run(m *messages.Message) {
+func (j *Job) Run(m *messages.Message) {
 	j.log.Tracef("Run: handling message %v", m)
 
 	if m.Header.Type != messages.DownloadingRequest {
@@ -67,32 +74,37 @@ func (j *DownloadingJob) Run(m *messages.Message) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	j.wf = downloading.NewDownloadingWf(
+	j.wf_adatapter.CreateWf(
 		j.uuid,
 		j.config,
 		ctx,
 		cancel,
+		j.wf_in,
+		j.wf_out,
 	)
-	j.wf_in = make(chan interface{}, 1)
-	j.wf_out = make(chan interface{}, 1)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go j.wf.Run(&wg)
+	go j.wf_adatapter.RunWf(&wg)
 
 	j.active(ctx, cancel, &wg)
 }
 
-func (j *DownloadingJob) active(
+func (j *Job) active(
 	ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup) {
 	j.log.Trace("entering active state")
 
 	for {
 		select {
 		case <-ctx.Done():
-			j.cancelled(wg)
+			j.canceled(ctx, wg)
 			return
 		case msg := <-j.session_out:
+			if msg.Header.Type == messages.CancelRequest {
+				cancel()
+				j.canceled(ctx, wg)
+				return
+			}
 			_ = msg
 		case msg := <-j.wf_out:
 			_ = msg
@@ -100,23 +112,40 @@ func (j *DownloadingJob) active(
 	}
 }
 
-func (j *DownloadingJob) cancelled(wg *sync.WaitGroup) {
-	j.log.Trace("entering cancelled state")
+func (j *Job) canceled(ctx context.Context, wg *sync.WaitGroup) {
+	j.log.Trace("entering canceled state")
 
 	wg.Wait()
 
 	select {
-	case msg := <-j.session_out:
+	case msg := <-j.wf_out:
 		_ = msg
 	default:
 		j.log.Warnf("workflow exited with no user notification")
 
-		msg := JobMessage{
+		business_msg := commonJobMessages.Canceled{}
+
+		switch ctx.Err() {
+		case context.DeadlineExceeded:
+			j.log.Debugf("job canceled due to the timeout, uuid is %v", j.uuid)
+			business_msg.Reason = "tiemout"
+		case context.Canceled:
+			j.log.Debugf("job canceled, uuid is %v", j.uuid)
+			business_msg.Reason = "cancelled"
+		}
+
+		payload, err := json.Marshal(business_msg)
+		if err != nil {
+			j.log.Fatalf("Failed to serialize message: %v", err)
+		}
+
+		msg := Message{
 			Msg: &messages.Message{
 				Header: &messages.Header{
 					Uuid: &j.uuid,
-					Type: messages.DownloadingCancelled,
+					Type: messages.Canceled,
 				},
+				Payload: payload,
 			},
 			Done: true,
 		}
@@ -127,13 +156,13 @@ func (j *DownloadingJob) cancelled(wg *sync.WaitGroup) {
 	j.releaseResources()
 }
 
-// func (j *DownloadingJob) done(wg *sync.WaitGroup) {
+// func (j *Job) done(wg *sync.WaitGroup) {
 // 	j.log.Trace("entering done state")
 
 // 	wg.Wait()
 // }
 
-func (j *DownloadingJob) releaseResources() {
+func (j *Job) releaseResources() {
 	close(j.session_out)
 	close(j.wf_in)
 	close(j.wf_out)
