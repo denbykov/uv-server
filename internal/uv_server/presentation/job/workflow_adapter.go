@@ -17,6 +17,6 @@ type WorkflowAdapter interface {
 		wf_out chan interface{},
 	)
 
-	RunWf(wg *sync.WaitGroup)
+	RunWf(wg *sync.WaitGroup, msg *messages.Message) error
 	HandleMessage(message *messages.Message) error
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"uv_server/internal/uv_server/business/workflows/downloading"
+	jobmessages "uv_server/internal/uv_server/business/workflows/downloading/job_messages"
+	"uv_server/internal/uv_server/common"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 	"uv_server/internal/uv_server/presentation/messages"
@@ -55,8 +57,21 @@ func (wa *DownloadingWfAdapter) CreateWf(
 
 func (wa *DownloadingWfAdapter) RunWf(
 	wg *sync.WaitGroup,
-) {
-	wa.wf.Run(wg)
+	msg *messages.Message,
+) error {
+	defer wg.Done()
+
+	request := &jobmessages.Request{}
+	err := common.UnmarshalStrict(msg.Payload, request)
+
+	if err != nil {
+		return fmt.Errorf("failed to parse payload: %v", err)
+	}
+
+	wg.Add(1)
+	go wa.wf.Run(request)
+
+	return nil
 }
 
 func (wa *DownloadingWfAdapter) HandleMessage(

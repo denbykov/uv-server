@@ -84,8 +84,12 @@ func (j *Job) Run(m *messages.Message) {
 	)
 
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go j.wf_adatapter.RunWf(&wg)
+	err := j.wf_adatapter.RunWf(&wg, m)
+
+	if err != nil {
+		err_msg := j.buildErrorMessage(err.Error())
+		j.session_in <- err_msg
+	}
 
 	j.active(ctx, cancel, &wg)
 }
@@ -111,28 +115,33 @@ func (j *Job) active(
 			if err != nil {
 				j.log.Errorf("failed to handle message: %v", err)
 
-				payload, err := json.Marshal(commonJobMessages.Error{Reason: err.Error()})
-				if err != nil {
-					j.log.Fatalf("failed to serialize message: %v", err)
-				}
-
-				err_msg := Message{
-					Msg: &messages.Message{
-						Header: &messages.Header{
-							Uuid: &j.uuid,
-							Type: messages.Error,
-						},
-						Payload: payload,
-					},
-					Done: false,
-				}
-
-				j.session_in <- &err_msg
+				err_msg := j.buildErrorMessage(err.Error())
+				j.session_in <- err_msg
 			}
 		case msg := <-j.wf_out:
 			_ = msg
 		}
 	}
+}
+
+func (j *Job) buildErrorMessage(reason string) *Message {
+	payload, err := json.Marshal(commonJobMessages.Error{Reason: reason})
+	if err != nil {
+		j.log.Fatalf("failed to serialize message: %v", err)
+	}
+
+	err_msg := &Message{
+		Msg: &messages.Message{
+			Header: &messages.Header{
+				Uuid: &j.uuid,
+				Type: messages.Error,
+			},
+			Payload: payload,
+		},
+		Done: false,
+	}
+
+	return err_msg
 }
 
 func (j *Job) canceled(ctx context.Context, wg *sync.WaitGroup) {
