@@ -21,8 +21,7 @@ type DownloadingWf struct {
 	log    *logrus.Entry
 	config *config.Config
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	jobCtx context.Context
 
 	job_in chan interface{}
 }
@@ -30,8 +29,7 @@ type DownloadingWf struct {
 func NewDownloadingWf(
 	uuid string,
 	config *config.Config,
-	ctx context.Context,
-	cancel context.CancelFunc,
+	jobCtx context.Context,
 	job_in chan interface{},
 	job_out chan interface{},
 ) *DownloadingWf {
@@ -43,8 +41,8 @@ func NewDownloadingWf(
 			"component": "DownloadingWf",
 			"uuid":      uuid})
 	object.config = config
-	object.ctx = ctx
-	object.cancel = cancel
+
+	object.jobCtx = jobCtx
 
 	object.job_in = job_in
 	_ = job_out
@@ -79,10 +77,10 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 
 	for {
 		select {
-		case <-w.ctx.Done():
-			w.log.Debugf("workflow cancelled: %v", w.ctx.Err().Error())
+		case <-w.jobCtx.Done():
+			w.log.Debugf("workflow cancelled: %v", w.jobCtx.Err().Error())
 
-			switch w.ctx.Err() {
+			switch w.jobCtx.Err() {
 			case context.DeadlineExceeded:
 				w.job_in <- commonJobMessages.Error{Reason: "Timeout exceeded"}
 			case context.Canceled:

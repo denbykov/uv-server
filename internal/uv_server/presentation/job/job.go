@@ -78,7 +78,6 @@ func (j *Job) Run(m *messages.Message) {
 		j.uuid,
 		j.config,
 		ctx,
-		cancel,
 		j.wf_in,
 		j.wf_out,
 	)

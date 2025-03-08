@@ -43,7 +43,6 @@ func (wa *DownloadingWfAdapter) CreateWf(
 	uuid string,
 	config *config.Config,
 	ctx context.Context,
-	cancel context.CancelFunc,
 	wf_in chan interface{},
 	wf_out chan interface{},
 ) {
@@ -51,7 +50,6 @@ func (wa *DownloadingWfAdapter) CreateWf(
 		uuid,
 		config,
 		ctx,
-		cancel,
 		wf_out,
 		wf_in,
 	)

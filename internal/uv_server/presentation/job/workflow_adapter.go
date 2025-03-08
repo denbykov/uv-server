@@ -11,8 +11,7 @@ type WorkflowAdapter interface {
 	CreateWf(
 		uuid string,
 		config *config.Config,
-		ctx context.Context,
-		cancel context.CancelFunc,
+		jobCtx context.Context,
 		wf_in chan interface{},
 		wf_out chan interface{},
 	)
