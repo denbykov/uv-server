@@ -17,9 +17,8 @@ const (
 	DownloadingRequest  Type = 1
 	DownloadingProgress Type = 10
 	CancelRequest       Type = 2
-	Canceled            Type = 3
-	Error               Type = 4
-	Done                Type = 5
+	Error               Type = 3
+	Done                Type = 4
 )
 
 func (t Type) String() string {
@@ -30,8 +29,6 @@ func (t Type) String() string {
 		return "DownloadingProgress"
 	case CancelRequest:
 		return "CancelRequest"
-	case Canceled:
-		return "canceled"
 	case Error:
 		return "Error"
 	case Done:

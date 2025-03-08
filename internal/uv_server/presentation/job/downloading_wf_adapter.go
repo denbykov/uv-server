@@ -52,6 +52,8 @@ func (wa *DownloadingWfAdapter) CreateWf(
 		config,
 		ctx,
 		cancel,
+		wf_out,
+		wf_in,
 	)
 }
 
@@ -59,8 +61,6 @@ func (wa *DownloadingWfAdapter) RunWf(
 	wg *sync.WaitGroup,
 	msg *messages.Message,
 ) error {
-	defer wg.Done()
-
 	request := &jobmessages.Request{}
 	err := common.UnmarshalStrict(msg.Payload, request)
 
@@ -69,7 +69,7 @@ func (wa *DownloadingWfAdapter) RunWf(
 	}
 
 	wg.Add(1)
-	go wa.wf.Run(request)
+	go wa.wf.Run(wg, request)
 
 	return nil
 }

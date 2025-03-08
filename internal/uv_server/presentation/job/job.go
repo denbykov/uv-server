@@ -87,11 +87,31 @@ func (j *Job) Run(m *messages.Message) {
 	err := j.wf_adatapter.RunWf(&wg, m)
 
 	if err != nil {
-		err_msg := j.buildErrorMessage(err.Error())
+		err_msg := j.buildErrorMessage(err.Error(), false)
 		j.session_in <- err_msg
 	}
 
 	j.active(ctx, cancel, &wg)
+}
+
+func (j *Job) buildErrorMessage(reason string, jobDone bool) *Message {
+	payload, err := json.Marshal(commonJobMessages.Error{Reason: reason})
+	if err != nil {
+		j.log.Fatalf("failed to serialize message: %v", err)
+	}
+
+	err_msg := &Message{
+		Msg: &messages.Message{
+			Header: &messages.Header{
+				Uuid: &j.uuid,
+				Type: messages.Error,
+			},
+			Payload: payload,
+		},
+		Done: jobDone,
+	}
+
+	return err_msg
 }
 
 func (j *Job) active(
@@ -114,34 +134,13 @@ func (j *Job) active(
 
 			if err != nil {
 				j.log.Errorf("failed to handle message: %v", err)
-
-				err_msg := j.buildErrorMessage(err.Error())
+				err_msg := j.buildErrorMessage(err.Error(), false)
 				j.session_in <- err_msg
 			}
 		case msg := <-j.wf_out:
 			_ = msg
 		}
 	}
-}
-
-func (j *Job) buildErrorMessage(reason string) *Message {
-	payload, err := json.Marshal(commonJobMessages.Error{Reason: reason})
-	if err != nil {
-		j.log.Fatalf("failed to serialize message: %v", err)
-	}
-
-	err_msg := &Message{
-		Msg: &messages.Message{
-			Header: &messages.Header{
-				Uuid: &j.uuid,
-				Type: messages.Error,
-			},
-			Payload: payload,
-		},
-		Done: false,
-	}
-
-	return err_msg
 }
 
 func (j *Job) canceled(ctx context.Context, wg *sync.WaitGroup) {
@@ -151,38 +150,26 @@ func (j *Job) canceled(ctx context.Context, wg *sync.WaitGroup) {
 
 	select {
 	case msg := <-j.wf_out:
-		_ = msg
+		if cmsg, ok := msg.(commonJobMessages.Error); ok {
+			err_msg := j.buildErrorMessage(cmsg.Reason, false)
+			j.session_in <- err_msg
+		}
 	default:
 		j.log.Warnf("workflow exited with no user notification")
 
-		business_msg := commonJobMessages.Canceled{}
+		var reason string
 
 		switch ctx.Err() {
 		case context.DeadlineExceeded:
 			j.log.Debugf("job canceled due to the timeout, uuid is %v", j.uuid)
-			business_msg.Reason = "tiemout"
+			reason = "tiemout"
 		case context.Canceled:
 			j.log.Debugf("job canceled, uuid is %v", j.uuid)
-			business_msg.Reason = "cancelled"
+			reason = "cancelled"
 		}
 
-		payload, err := json.Marshal(business_msg)
-		if err != nil {
-			j.log.Fatalf("Failed to serialize message: %v", err)
-		}
-
-		msg := Message{
-			Msg: &messages.Message{
-				Header: &messages.Header{
-					Uuid: &j.uuid,
-					Type: messages.Canceled,
-				},
-				Payload: payload,
-			},
-			Done: true,
-		}
-
-		j.session_in <- &msg
+		err_msg := j.buildErrorMessage(reason, false)
+		j.session_in <- err_msg
 	}
 
 	j.releaseResources()
