@@ -117,6 +117,7 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 	for {
 		select {
 		case <-d.jobCtx.Done():
+			stdout.Close()
 			d.cleanUp(process, false)
 			return
 		case msg := <-d.child_out:
