@@ -47,7 +47,8 @@ func NewDownloadingWf(
 	object.log = loggers.BusinessLogger.WithFields(
 		logrus.Fields{
 			"component": "DownloadingWf",
-			"uuid":      uuid})
+			"uuid":      uuid},
+	)
 	object.config = config
 
 	object.jobCtx = jobCtx

@@ -57,6 +57,7 @@ func (wa *DownloadingWfAdapter) CreateWf(
 	wa.downloader_out = make(chan interface{}, 1)
 
 	downloader := downloaders.NewYtDownloader(
+		uuid,
 		config,
 		ctx,
 		wa.downloader_out,

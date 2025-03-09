@@ -7,11 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path"
 	"reflect"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -29,6 +32,8 @@ const (
 )
 
 type YtDownloader struct {
+	uuid string
+
 	log    *logrus.Entry
 	config *config.Config
 
@@ -40,18 +45,23 @@ type YtDownloader struct {
 }
 
 func NewYtDownloader(
+	uuid string,
 	config *config.Config,
 	jobCtx context.Context,
 	wf_out chan<- interface{},
 ) *YtDownloader {
 	object := &YtDownloader{}
-	object.log = loggers.DataLogger.WithField("component", "yt_downloader")
+	object.log = loggers.DataLogger.WithFields(
+		logrus.Fields{
+			"component": "DownloadingWf",
+			"uuid":      uuid},
+	)
+
+	object.uuid = uuid
+
 	object.config = config
-
 	object.jobCtx = jobCtx
-
 	object.wf_out = wf_out
-
 	object.child_out = make(chan interface{}, 1)
 
 	return object
@@ -97,6 +107,72 @@ func (d *YtDownloader) handleDoneMessage(
 	return nil
 }
 
+func copyFile(src, dst string) error {
+	sourceFileStat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", src)
+	}
+
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	destinationStat, err := os.Stat(dst)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		destination, err := os.Create(dst)
+		if err != nil {
+			return err
+		}
+
+		defer destination.Close()
+		_, err = io.Copy(destination, source)
+		return err
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if !destinationStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", src)
+	}
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	defer destination.Close()
+	_, err = io.Copy(destination, source)
+	return err
+}
+
+func (d *YtDownloader) ensureDirectoryExists(dir string) {
+	stat, err := os.Stat(dir)
+
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		if err := os.Mkdir(dir, os.ModePerm); err != nil {
+			log.Fatal(err)
+		}
+
+		return
+	}
+
+	if err != nil {
+		log.Fatalf("failed to stat temp dir: %v", err)
+	}
+
+	if !stat.Mode().IsDir() {
+		log.Fatalf("temp dir path is taken by non-direcotry: %v", err)
+	}
+}
+
 func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 	d.log.Debugf("downloading file from url: %v", url)
 
@@ -107,7 +183,11 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 		d.log.Fatal(err)
 	}
 
-	process, stdout, err := d.startProcess(wd, url)
+	storageDir := "."
+	tempDir := path.Join(storageDir, d.uuid)
+	d.ensureDirectoryExists(tempDir)
+
+	process, stdout, err := d.startProcess(wd, url, tempDir)
 	if err != nil {
 		d.log.Fatal(err)
 	}
@@ -120,18 +200,30 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 		select {
 		case <-d.jobCtx.Done():
 			stdout.Close()
-			d.cleanUp(process, &childWg, false)
+			d.cleanUp(process, &childWg, false, tempDir)
 			return
 		case msg := <-d.child_out:
 			if typedMsg, ok := msg.(*businessData.Progress); ok {
 				d.wf_out <- typedMsg
 			} else if typedMsg, ok := msg.(*businessData.Done); ok {
+				sfn := strings.Split(typedMsg.Filename, string(os.PathSeparator))
+				typedMsg.Filename = sfn[len(sfn)-1]
+
+				err := copyFile(
+					path.Join(tempDir, typedMsg.Filename),
+					path.Join(storageDir, typedMsg.Filename),
+				)
+
+				if err != nil {
+					d.log.Fatalf("Failed to copy file: %v", err)
+				}
+
+				d.cleanUp(process, &childWg, true, tempDir)
 				d.wf_out <- typedMsg
-				d.cleanUp(process, &childWg, true)
 				return
 			} else if typedMsg, ok := msg.(*businessData.Error); ok {
 				d.wf_out <- typedMsg
-				d.cleanUp(process, &childWg, false)
+				d.cleanUp(process, &childWg, false, tempDir)
 				return
 			} else {
 				d.log.Fatalf("Unknown message type: %v", reflect.TypeOf(msg))
@@ -140,7 +232,12 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 	}
 }
 
-func (d *YtDownloader) cleanUp(process *exec.Cmd, childWg *sync.WaitGroup, gracefulExit bool) {
+func (d *YtDownloader) cleanUp(
+	process *exec.Cmd,
+	childWg *sync.WaitGroup,
+	gracefulExit bool,
+	tempDir string,
+) {
 	d.log.WithField("graceful", gracefulExit).Trace("Cleaning up")
 
 	childWg.Wait()
@@ -157,17 +254,24 @@ func (d *YtDownloader) cleanUp(process *exec.Cmd, childWg *sync.WaitGroup, grace
 		d.log.Tracef("downlaoder executable exited with: %v", err)
 	}
 
+	// Give OS some time to release file handlers
+	time.Sleep(100 * time.Millisecond)
+
+	err = os.RemoveAll(tempDir)
+	if err != nil {
+		d.log.Fatalf("failed to remove temp dir: %v", err)
+	}
+
 	d.log.Trace("Done cleaning up")
 }
 
-func (d *YtDownloader) startProcess(wd string, url string) (*exec.Cmd, io.ReadCloser, error) {
+func (d *YtDownloader) startProcess(wd string, url string, dir string) (*exec.Cmd, io.ReadCloser, error) {
 	executable := path.Join(wd, d.config.ScriptsLocation, "downloader")
-	storage_location := "."
 
 	process := exec.Command(
 		executable,
 		"--url", url,
-		"--dir", storage_location,
+		"--dir", dir,
 		"--ffmpeg_location", d.config.FfmpegLocation)
 
 	stdout, err := process.StdoutPipe()
