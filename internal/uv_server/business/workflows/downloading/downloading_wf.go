@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"sync"
+	"time"
 	"uv_server/internal/uv_server/business"
 	commonJobMessages "uv_server/internal/uv_server/business/common_job_messages"
 	wfData "uv_server/internal/uv_server/business/workflows/downloading/data"
@@ -68,24 +69,16 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobMessages.Request) {
 	url := *request.Url
 	w.log.Tracef("serving downloading request for url: %v", url)
 
-	source, err := w.getSourceFromUrl(url)
+	var downloaderWg sync.WaitGroup
+	err := w.startDownloading(&downloaderWg, url)
 	if err != nil {
-		w.log.Error(err)
+		w.log.Errorf("start downloading failed with error: %v", err)
 		w.job_in <- commonJobMessages.Error{Reason: err.Error()}
 		return
 	}
 
-	var downloaderWg sync.WaitGroup
-	if source == business.Youtube {
-		err := w.startDownloadingFromYoutube(&downloaderWg, url)
-		if err != nil {
-			w.log.Errorf("start downloading from youtube failed with error: %v", err)
-			w.job_in <- commonJobMessages.Error{Reason: err.Error()}
-			return
-		}
-	} else {
-		w.log.Fatalf("downloading for %v is not implemented", source)
-	}
+	w.job_in <- jobMessages.Progress{Percentage: 0}
+	lastProgressTs := time.Now()
 
 	for {
 		select {
@@ -104,12 +97,17 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobMessages.Request) {
 			return
 		case msg := <-w.downloader_out:
 			if tMsg, ok := msg.(*wfData.Progress); ok {
-				w.job_in <- jobMessages.Progress{Percentage: tMsg.Percentage}
+				now := time.Now()
+				if now.Sub(lastProgressTs).Seconds() > 0 {
+					w.job_in <- jobMessages.Progress{Percentage: tMsg.Percentage}
+					lastProgressTs = now
+				}
 			} else if tMsg, ok := msg.(*wfData.Error); ok {
 				w.job_in <- commonJobMessages.Error{Reason: tMsg.Reason}
 				downloaderWg.Wait()
 				return
 			} else if _, ok := msg.(*wfData.Done); ok {
+				w.job_in <- jobMessages.Progress{Percentage: 100}
 				w.job_in <- commonJobMessages.Done{}
 				downloaderWg.Wait()
 				return
@@ -141,6 +139,27 @@ func normalizeYoutubeUrl(url string) (string, error) {
 
 	matches := youtubeRegex.FindStringSubmatch(url)
 	return fmt.Sprintf("https://www.youtube.com/watch?v=%s", matches[1]), nil
+}
+
+func (w *DownloadingWf) startDownloading(
+	downloaderWg *sync.WaitGroup,
+	url string,
+) error {
+	source, err := w.getSourceFromUrl(url)
+	if err != nil {
+		return err
+	}
+
+	if source == business.Youtube {
+		err := w.startDownloadingFromYoutube(downloaderWg, url)
+		if err != nil {
+			return err
+		}
+	} else {
+		w.log.Fatalf("downloading for %v is not implemented", source)
+	}
+
+	return nil
 }
 
 func (w *DownloadingWf) startDownloadingFromYoutube(
