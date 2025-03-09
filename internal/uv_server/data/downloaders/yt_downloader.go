@@ -112,24 +112,26 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 		d.log.Fatal(err)
 	}
 
-	go d.listenToChild(stdout)
+	var childWg sync.WaitGroup
+	childWg.Add(1)
+	go d.listenToChild(&childWg, stdout)
 
 	for {
 		select {
 		case <-d.jobCtx.Done():
 			stdout.Close()
-			d.cleanUp(process, false)
+			d.cleanUp(process, &childWg, false)
 			return
 		case msg := <-d.child_out:
 			if typedMsg, ok := msg.(*businessData.Progress); ok {
 				d.wf_out <- typedMsg
 			} else if typedMsg, ok := msg.(*businessData.Done); ok {
 				d.wf_out <- typedMsg
-				d.cleanUp(process, true)
+				d.cleanUp(process, &childWg, true)
 				return
 			} else if typedMsg, ok := msg.(*businessData.Error); ok {
 				d.wf_out <- typedMsg
-				d.cleanUp(process, false)
+				d.cleanUp(process, &childWg, false)
 				return
 			} else {
 				d.log.Fatalf("Unknown message type: %v", reflect.TypeOf(msg))
@@ -138,8 +140,10 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 	}
 }
 
-func (d *YtDownloader) cleanUp(process *exec.Cmd, gracefulExit bool) {
+func (d *YtDownloader) cleanUp(process *exec.Cmd, childWg *sync.WaitGroup, gracefulExit bool) {
 	d.log.WithField("graceful", gracefulExit).Trace("Cleaning up")
+
+	childWg.Wait()
 
 	if !gracefulExit {
 		err := process.Process.Kill()
@@ -150,8 +154,10 @@ func (d *YtDownloader) cleanUp(process *exec.Cmd, gracefulExit bool) {
 
 	err := process.Wait()
 	if err != nil {
-		d.log.Fatal(err)
+		d.log.Tracef("downlaoder executable exited with: %v", err)
 	}
+
+	d.log.Trace("Done cleaning up")
 }
 
 func (d *YtDownloader) startProcess(wd string, url string) (*exec.Cmd, io.ReadCloser, error) {
@@ -177,16 +183,23 @@ func (d *YtDownloader) startProcess(wd string, url string) (*exec.Cmd, io.ReadCl
 	return process, stdout, nil
 }
 
-func (d *YtDownloader) listenToChild(stdout io.ReadCloser) {
+func (d *YtDownloader) listenToChild(wg *sync.WaitGroup, stdout io.ReadCloser) {
+	defer wg.Done()
+
 	reader := bufio.NewReader(stdout)
 
 	for {
 		message, err := reader.ReadBytes('\n')
 		d.log.Tracef("Handling script message: %v", string(message))
 
-		if err != nil {
+		if err != nil && !errors.Is(err, os.ErrClosed) {
 			d.log.Errorf("failed to read message from script: %v", err)
 			d.child_out <- businessData.Error{Reason: "downloading failed"}
+			return
+		}
+
+		if err != nil && errors.Is(err, os.ErrClosed) {
+			d.log.Tracef("Child output closed")
 			return
 		}
 
