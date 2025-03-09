@@ -17,5 +17,6 @@ type WorkflowAdapter interface {
 	)
 
 	RunWf(wg *sync.WaitGroup, msg *messages.Message) error
-	HandleMessage(message *messages.Message) error
+	HandleSessionMessage(message *messages.Message) error
+	HandleWfMessage(message interface{}) (State, error)
 }

@@ -34,7 +34,7 @@ type YtDownloader struct {
 
 	jobCtx context.Context
 
-	wf_out chan interface{}
+	wf_out chan<- interface{}
 
 	child_out chan interface{}
 }
@@ -42,7 +42,7 @@ type YtDownloader struct {
 func NewYtDownloader(
 	config *config.Config,
 	jobCtx context.Context,
-	wf_out chan interface{},
+	wf_out chan<- interface{},
 ) *YtDownloader {
 	object := &YtDownloader{}
 	object.log = loggers.DataLogger.WithField("component", "YtDownloader")

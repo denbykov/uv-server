@@ -25,7 +25,9 @@ func NewJobBuilder(config *config.Config) *JobBuilder {
 }
 
 func (b *JobBuilder) CreateJob(
-	message *messages.Message, session_in chan *job.Message) (*job.Job, error) {
+	message *messages.Message,
+	session_in chan<- *job.Message,
+) (*job.Job, error) {
 	typ := message.Header.Type
 
 	b.log.Debugf("Creating Job for message type %v", typ)
@@ -41,6 +43,7 @@ func (b *JobBuilder) CreateJob(
 		wa = job.NewDownloadingWfAdapter(
 			uuid,
 			b.config,
+			session_in,
 		)
 	default:
 		return j, fmt.Errorf("unable to create job for message type %v", typ)

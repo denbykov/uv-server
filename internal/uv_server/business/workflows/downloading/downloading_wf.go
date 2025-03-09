@@ -8,7 +8,8 @@ import (
 	"sync"
 	"uv_server/internal/uv_server/business"
 	commonJobMessages "uv_server/internal/uv_server/business/common_job_messages"
-	jobmessages "uv_server/internal/uv_server/business/workflows/downloading/job_messages"
+	wfData "uv_server/internal/uv_server/business/workflows/downloading/data"
+	jobMessages "uv_server/internal/uv_server/business/workflows/downloading/job_messages"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 
@@ -23,15 +24,21 @@ type DownloadingWf struct {
 
 	jobCtx context.Context
 
-	job_in chan interface{}
+	job_in chan<- interface{}
+
+	downloader_out <-chan interface{}
+
+	downloader wfData.Downloader
 }
 
 func NewDownloadingWf(
 	uuid string,
 	config *config.Config,
 	jobCtx context.Context,
-	job_in chan interface{},
-	job_out chan interface{},
+	job_in chan<- interface{},
+	job_out <-chan interface{},
+	downloader wfData.Downloader,
+	downloader_out <-chan interface{},
 ) *DownloadingWf {
 	object := &DownloadingWf{}
 
@@ -47,12 +54,15 @@ func NewDownloadingWf(
 	object.job_in = job_in
 	_ = job_out
 
+	object.downloader = downloader
+	object.downloader_out = downloader_out
+
 	return object
 }
 
 var youtubeRegex = regexp.MustCompile(`(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})`)
 
-func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
+func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobMessages.Request) {
 	defer wg.Done()
 
 	url := *request.Url
@@ -65,11 +75,13 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 		return
 	}
 
+	var downloaderWg sync.WaitGroup
 	if source == business.Youtube {
-		err := w.startDownloadingFromYoutube(url)
+		err := w.startDownloadingFromYoutube(&downloaderWg, url)
 		if err != nil {
 			w.log.Errorf("start downloading from youtube failed with error: %v", err)
 			w.job_in <- commonJobMessages.Error{Reason: err.Error()}
+			return
 		}
 	} else {
 		w.log.Fatalf("downloading for %v is not implemented", source)
@@ -80,6 +92,8 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 		case <-w.jobCtx.Done():
 			w.log.Debugf("workflow cancelled: %v", w.jobCtx.Err().Error())
 
+			downloaderWg.Wait()
+
 			switch w.jobCtx.Err() {
 			case context.DeadlineExceeded:
 				w.job_in <- commonJobMessages.Error{Reason: "Timeout exceeded"}
@@ -88,6 +102,18 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 			}
 
 			return
+		case msg := <-w.downloader_out:
+			if tMsg, ok := msg.(wfData.Progress); ok {
+				w.job_in <- jobMessages.Progress{Percentage: tMsg.Percentage}
+			} else if tMsg, ok := msg.(wfData.Error); ok {
+				w.job_in <- commonJobMessages.Error{Reason: tMsg.Reason}
+				downloaderWg.Wait()
+				return
+			} else if _, ok := msg.(wfData.Done); ok {
+				w.job_in <- commonJobMessages.Done{}
+				downloaderWg.Wait()
+				return
+			}
 		}
 	}
 }
@@ -113,7 +139,10 @@ func normalizeYoutubeUrl(url string) (string, error) {
 	return fmt.Sprintf("https://www.youtube.com/watch?v=%s", matches[1]), nil
 }
 
-func (w *DownloadingWf) startDownloadingFromYoutube(url string) error {
+func (w *DownloadingWf) startDownloadingFromYoutube(
+	downloaderWg *sync.WaitGroup,
+	url string,
+) error {
 	log := w.log.WithField("source", "youtube")
 
 	log.Debugf("starting downloading")
@@ -123,6 +152,8 @@ func (w *DownloadingWf) startDownloadingFromYoutube(url string) error {
 	}
 
 	log.Debugf("normalized url is: %v", url)
+
+	go w.downloader.Download(downloaderWg, url)
 
 	return nil
 }

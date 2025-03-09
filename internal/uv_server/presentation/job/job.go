@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 	commonJobMessages "uv_server/internal/uv_server/business/common_job_messages"
@@ -12,6 +13,30 @@ import (
 
 	"github.com/sirupsen/logrus"
 )
+
+type State int
+
+const (
+	Active State = iota
+	Canceled
+	Done
+	None
+)
+
+func (t State) String() string {
+	switch t {
+	case Active:
+		return "Active"
+	case Canceled:
+		return "Canceled"
+	case Done:
+		return "Done"
+	case None:
+		return "None"
+	default:
+		return fmt.Sprintf("Unknown: %d", t)
+	}
+}
 
 type Message struct {
 	Msg  *messages.Message
@@ -86,14 +111,27 @@ func (j *Job) Run(m *messages.Message) {
 	err := j.wf_adatapter.RunWf(&wg, m)
 
 	if err != nil {
-		err_msg := j.buildErrorMessage(err.Error(), false)
+		err_msg := j.buildErrorMessage(err.Error())
 		j.session_in <- err_msg
 	}
 
-	j.active(ctx, cancel, &wg)
+	nextState := Active
+	for {
+		switch nextState {
+		case Active:
+			nextState = j.active(ctx, cancel, &wg)
+		case Canceled:
+			nextState = j.canceled(ctx, &wg)
+		case Done:
+			nextState = j.done(&wg)
+		case None:
+			j.releaseResources()
+			return
+		}
+	}
 }
 
-func (j *Job) buildErrorMessage(reason string, jobDone bool) *Message {
+func (j *Job) buildErrorMessage(reason string) *Message {
 	payload, err := json.Marshal(commonJobMessages.Error{Reason: reason})
 	if err != nil {
 		j.log.Fatalf("failed to serialize message: %v", err)
@@ -107,51 +145,83 @@ func (j *Job) buildErrorMessage(reason string, jobDone bool) *Message {
 			},
 			Payload: payload,
 		},
-		Done: jobDone,
+		Done: true,
 	}
 
 	return err_msg
 }
 
+func (j *Job) buildDoneMessage() *Message {
+	msg := &Message{
+		Msg: &messages.Message{
+			Header: &messages.Header{
+				Uuid: &j.uuid,
+				Type: messages.Done,
+			},
+			Payload: nil,
+		},
+		Done: true,
+	}
+
+	return msg
+}
+
 func (j *Job) active(
-	ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup) {
+	ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup) State {
 	j.log.Trace("entering active state")
 
 	for {
 		select {
 		case <-ctx.Done():
-			j.canceled(ctx, wg)
-			return
+			return Canceled
 		case msg := <-j.session_out:
 			if msg.Header.Type == messages.CancelRequest {
 				cancel()
-				j.canceled(ctx, wg)
-				return
+				return Canceled
 			}
 
-			err := j.wf_adatapter.HandleMessage(msg)
+			err := j.wf_adatapter.HandleSessionMessage(msg)
 
 			if err != nil {
 				j.log.Errorf("failed to handle message: %v", err)
-				err_msg := j.buildErrorMessage(err.Error(), false)
+				err_msg := j.buildErrorMessage(err.Error())
 				j.session_in <- err_msg
 			}
 		case msg := <-j.wf_out:
-			_ = msg
+			if tMsg, ok := msg.(commonJobMessages.Error); ok {
+				err_msg := j.buildErrorMessage(tMsg.Reason)
+				j.session_in <- err_msg
+			} else if _, ok := msg.(commonJobMessages.Done); ok {
+				j.session_in <- j.buildDoneMessage()
+			} else {
+				state, err := j.wf_adatapter.HandleWfMessage(msg)
+
+				if err != nil {
+					err_msg := j.buildErrorMessage(tMsg.Reason)
+					j.session_in <- err_msg
+					return None
+				}
+
+				if state != Active {
+					return state
+				}
+			}
 		}
 	}
 }
 
-func (j *Job) canceled(ctx context.Context, wg *sync.WaitGroup) {
+func (j *Job) canceled(ctx context.Context, wg *sync.WaitGroup) State {
 	j.log.Trace("entering canceled state")
 
 	wg.Wait()
 
 	select {
 	case msg := <-j.wf_out:
-		if cmsg, ok := msg.(commonJobMessages.Error); ok {
-			err_msg := j.buildErrorMessage(cmsg.Reason, false)
+		if tMsg, ok := msg.(commonJobMessages.Error); ok {
+			err_msg := j.buildErrorMessage(tMsg.Reason)
 			j.session_in <- err_msg
+		} else {
+			j.log.Fatalf("Unexpected message: %v", tMsg)
 		}
 	default:
 		j.log.Warnf("workflow exited with no user notification")
@@ -167,18 +237,18 @@ func (j *Job) canceled(ctx context.Context, wg *sync.WaitGroup) {
 			reason = "cancelled"
 		}
 
-		err_msg := j.buildErrorMessage(reason, false)
+		err_msg := j.buildErrorMessage(reason)
 		j.session_in <- err_msg
 	}
 
-	j.releaseResources()
+	return None
 }
 
-// func (j *Job) done(wg *sync.WaitGroup) {
-// 	j.log.Trace("entering done state")
-
-// 	wg.Wait()
-// }
+func (j *Job) done(wg *sync.WaitGroup) State {
+	j.log.Trace("entering done state")
+	wg.Wait()
+	return None
+}
 
 func (j *Job) releaseResources() {
 	close(j.session_out)
