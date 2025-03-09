@@ -45,7 +45,7 @@ func NewYtDownloader(
 	wf_out chan<- interface{},
 ) *YtDownloader {
 	object := &YtDownloader{}
-	object.log = loggers.DataLogger.WithField("component", "YtDownloader")
+	object.log = loggers.DataLogger.WithField("component", "yt_downloader")
 	object.config = config
 
 	object.jobCtx = jobCtx
@@ -121,13 +121,13 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 			d.cleanUp(process, false)
 			return
 		case msg := <-d.child_out:
-			if typedMsg, ok := msg.(businessData.Progress); ok {
+			if typedMsg, ok := msg.(*businessData.Progress); ok {
 				d.wf_out <- typedMsg
-			} else if typedMsg, ok := msg.(businessData.Done); ok {
+			} else if typedMsg, ok := msg.(*businessData.Done); ok {
 				d.wf_out <- typedMsg
 				d.cleanUp(process, true)
 				return
-			} else if typedMsg, ok := msg.(businessData.Error); ok {
+			} else if typedMsg, ok := msg.(*businessData.Error); ok {
 				d.wf_out <- typedMsg
 				d.cleanUp(process, false)
 				return
@@ -139,6 +139,8 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 }
 
 func (d *YtDownloader) cleanUp(process *exec.Cmd, gracefulExit bool) {
+	d.log.WithField("graceful", gracefulExit).Trace("Cleaning up")
+
 	if !gracefulExit {
 		err := process.Process.Kill()
 		if err != nil {

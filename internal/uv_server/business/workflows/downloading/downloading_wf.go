@@ -103,14 +103,18 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobMessages.Request) {
 
 			return
 		case msg := <-w.downloader_out:
-			if tMsg, ok := msg.(wfData.Progress); ok {
+			if tMsg, ok := msg.(*wfData.Progress); ok {
 				w.job_in <- jobMessages.Progress{Percentage: tMsg.Percentage}
-			} else if tMsg, ok := msg.(wfData.Error); ok {
+			} else if tMsg, ok := msg.(*wfData.Error); ok {
 				w.job_in <- commonJobMessages.Error{Reason: tMsg.Reason}
 				downloaderWg.Wait()
 				return
-			} else if _, ok := msg.(wfData.Done); ok {
+			} else if _, ok := msg.(*wfData.Done); ok {
 				w.job_in <- commonJobMessages.Done{}
+				downloaderWg.Wait()
+				return
+			} else {
+				w.job_in <- commonJobMessages.InternalError
 				downloaderWg.Wait()
 				return
 			}
@@ -153,6 +157,7 @@ func (w *DownloadingWf) startDownloadingFromYoutube(
 
 	log.Debugf("normalized url is: %v", url)
 
+	downloaderWg.Add(1)
 	go w.downloader.Download(downloaderWg, url)
 
 	return nil

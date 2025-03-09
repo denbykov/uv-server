@@ -68,25 +68,25 @@ func Init(logDirectory string, logFile string) {
 	applicationLogger.SetLevel(level)
 	applicationLogger.SetOutput(writer)
 	applicationLogger.SetNoLock()
-	ApplicationLogger = applicationLogger.WithField("name", "Application")
+	ApplicationLogger = applicationLogger.WithField("layer", "Application")
 
 	businessLogger = logrus.New()
 	businessLogger.SetLevel(level)
 	businessLogger.SetOutput(writer)
 	businessLogger.SetNoLock()
-	BusinessLogger = businessLogger.WithField("name", "Business")
+	BusinessLogger = businessLogger.WithField("layer", "Business")
 
 	presentationLogger = logrus.New()
 	presentationLogger.SetLevel(level)
 	presentationLogger.SetOutput(writer)
 	presentationLogger.SetNoLock()
-	PresentationLogger = presentationLogger.WithField("name", "Presentation")
+	PresentationLogger = presentationLogger.WithField("layer", "Presentation")
 
 	dataLogger = logrus.New()
 	dataLogger.SetLevel(level)
 	dataLogger.SetOutput(writer)
 	dataLogger.SetNoLock()
-	DataLogger = dataLogger.WithField("name", "Data")
+	DataLogger = dataLogger.WithField("layer", "Data")
 }
 
 func CloseLogFile() {

@@ -193,6 +193,7 @@ func (j *Job) active(
 				j.session_in <- err_msg
 			} else if _, ok := msg.(commonJobMessages.Done); ok {
 				j.session_in <- j.buildDoneMessage()
+				return None
 			} else {
 				state, err := j.wf_adatapter.HandleWfMessage(msg)
 
