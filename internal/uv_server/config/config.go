@@ -16,6 +16,8 @@ type Config struct {
 	FfmpegLocation string `yaml:"ffmpegLocation"`
 
 	ScriptsLocation string
+
+	ChangesetsLocation string `yaml:"changesetsLocation"`
 }
 
 func (config *Config) parse(path string) {

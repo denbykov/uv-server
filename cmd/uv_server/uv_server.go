@@ -29,7 +29,7 @@ func main() {
 
 	migrator := data.NewMigrator(
 		config,
-		data.NewMigrationRepositry(db),
+		db,
 	)
 	migrator.MigrateIfNeeded()
 

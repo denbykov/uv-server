@@ -1,0 +1,4 @@
+CREATE TABLE app (
+    id INTEGER PRIMARY KEY,
+    db_version INTEGER NOT NULL
+);
