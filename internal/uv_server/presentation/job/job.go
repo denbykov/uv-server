@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	commonJobMessages "uv_server/internal/uv_server/business/common_job_messages"
+	cjmessages "uv_server/internal/uv_server/business/common_job_messages"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 	"uv_server/internal/uv_server/presentation/messages"
@@ -132,7 +132,7 @@ func (j *Job) Run(m *messages.Message) {
 }
 
 func (j *Job) buildErrorMessage(reason string) *Message {
-	payload, err := json.Marshal(commonJobMessages.Error{Reason: reason})
+	payload, err := json.Marshal(cjmessages.Error{Reason: reason})
 	if err != nil {
 		j.log.Fatalf("failed to serialize message: %v", err)
 	}
@@ -188,10 +188,10 @@ func (j *Job) active(
 				j.session_in <- err_msg
 			}
 		case msg := <-j.wf_out:
-			if tMsg, ok := msg.(commonJobMessages.Error); ok {
+			if tMsg, ok := msg.(cjmessages.Error); ok {
 				err_msg := j.buildErrorMessage(tMsg.Reason)
 				j.session_in <- err_msg
-			} else if _, ok := msg.(commonJobMessages.Done); ok {
+			} else if _, ok := msg.(cjmessages.Done); ok {
 				j.session_in <- j.buildDoneMessage()
 				return None
 			} else {
@@ -218,7 +218,7 @@ func (j *Job) canceled(ctx context.Context, wg *sync.WaitGroup) State {
 
 	select {
 	case msg := <-j.wf_out:
-		if tMsg, ok := msg.(commonJobMessages.Error); ok {
+		if tMsg, ok := msg.(cjmessages.Error); ok {
 			err_msg := j.buildErrorMessage(tMsg.Reason)
 			j.session_in <- err_msg
 		} else {

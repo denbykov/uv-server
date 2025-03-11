@@ -16,12 +16,12 @@ CREATE TABLE sources (
 
 INSERT INTO sources (source, description)
 VALUES 
-	('yt', 'Pending');
+	('yt', 'Youtube');
 
 CREATE TABLE files (
 	id INTEGER PRIMARY KEY,
 	path TEXT NULL UNIQUE,
-	source_url VARCHAR(255) NOT NULL UNIQUE,
+	source_url TEXT NOT NULL UNIQUE,
 	source TEXT NOT NULL,
 	status TEXT NOT NULL,
 	added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

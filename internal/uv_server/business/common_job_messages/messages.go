@@ -1,4 +1,4 @@
-package commonJobMessages
+package cjmessages
 
 type Error struct {
 	Reason string `json:"reason"`

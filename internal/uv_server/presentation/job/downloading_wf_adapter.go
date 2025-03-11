@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"sync"
 	"uv_server/internal/uv_server/business/workflows/downloading"
-	jobMessages "uv_server/internal/uv_server/business/workflows/downloading/job_messages"
+	jobmessages "uv_server/internal/uv_server/business/workflows/downloading/job_messages"
 	"uv_server/internal/uv_server/common"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
@@ -78,7 +78,7 @@ func (wa *DownloadingWfAdapter) RunWf(
 	wg *sync.WaitGroup,
 	msg *messages.Message,
 ) error {
-	request := &jobMessages.Request{}
+	request := &jobmessages.Request{}
 	err := common.UnmarshalStrict(msg.Payload, request)
 
 	if err != nil {
@@ -103,7 +103,7 @@ func (wa *DownloadingWfAdapter) HandleWfMessage(
 ) (State, error) {
 	wa.log.Tracef("handling wf message")
 
-	if tMsg, ok := msg.(jobMessages.Progress); ok {
+	if tMsg, ok := msg.(jobmessages.Progress); ok {
 		payload, err := json.Marshal(tMsg)
 		if err != nil {
 			wa.log.Fatalf("failed to serialize message: %v", err)
