@@ -43,7 +43,7 @@ func (m *DbMigrator) GetVersion() (int, error) {
 	statement := `
 	SELECT name FROM sqlite_master
 	WHERE type='table'
-	AND name=$1;
+	AND name=?;
 	`
 
 	m.log.Debugf("executing statement: %v", statement)
@@ -81,7 +81,7 @@ func (m *DbMigrator) GetVersion() (int, error) {
 func (m *DbMigrator) setDbVersion(version int) error {
 	statement := `
 	INSERT OR REPLACE INTO app (id, db_version)
-	VALUES (1, $1);
+	VALUES (1, ?);
 	`
 
 	_, err := m.db.Exec(statement, version)

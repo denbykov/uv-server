@@ -187,11 +187,11 @@ func (w *DownloadingWf) startDownloading(
 
 	file, err := w.database.GetFileByUrl(url)
 	if err != nil {
-		return err
+		w.log.Fatalf("failed to get file by url")
 	}
 
 	if file != nil {
-		return fmt.Errorf("file already exists in the database, url is: %v", file.SourceUrl)
+		return fmt.Errorf("file already exists")
 	}
 
 	if source == data.Youtube {
@@ -209,7 +209,11 @@ func (w *DownloadingWf) startDownloading(
 		Status:    data.FsDownloading,
 	})
 
-	return err
+	if err != nil {
+		w.log.Fatal(err)
+	}
+
+	return nil
 }
 
 func (w *DownloadingWf) normalizeUrl(

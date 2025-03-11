@@ -141,19 +141,27 @@ func (s *Session) writePump() {
 	for {
 		select {
 		case j_message, ok := <-s.job_out:
-			if j_message.Done {
-				s.jobs_mx.Lock()
-				s.log.Tracef("removing job: %v", *j_message.Msg.Header.Uuid)
-				delete(s.jobs, *j_message.Msg.Header.Uuid)
-				s.jobs_mx.Unlock()
-			}
-
 			if !ok {
 				err := s.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				if err != nil {
 					s.log.Errorf("failed to write message: %v", err)
 				}
 				return
+			}
+
+			if j_message.Done {
+				s.jobs_mx.Lock()
+				s.log.Tracef("removing job: %v", *j_message.Msg.Header.Uuid)
+
+				_, ok := s.jobs[*j_message.Msg.Header.Uuid]
+				if !ok {
+					s.log.Fatalf(
+						"trying to remove non-existing job: %v",
+						*j_message.Msg.Header.Uuid)
+				}
+				delete(s.jobs, *j_message.Msg.Header.Uuid)
+
+				s.jobs_mx.Unlock()
 			}
 
 			w, err := s.conn.NextWriter(websocket.BinaryMessage)

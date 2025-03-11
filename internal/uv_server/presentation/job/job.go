@@ -191,6 +191,7 @@ func (j *Job) active(
 			if tMsg, ok := msg.(cjmessages.Error); ok {
 				err_msg := j.buildErrorMessage(tMsg.Reason)
 				j.session_in <- err_msg
+				return None
 			} else if _, ok := msg.(cjmessages.Done); ok {
 				j.session_in <- j.buildDoneMessage()
 				return None

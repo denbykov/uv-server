@@ -2,7 +2,7 @@ package data
 
 import (
 	"database/sql"
-	"fmt"
+	"errors"
 	"time"
 	"uv_server/internal/uv_server/business/data"
 	"uv_server/internal/uv_server/common/loggers"
@@ -31,19 +31,20 @@ func (d *Database) GetFileByUrl(url string) (*data.File, error) {
 	statement := `
 	SELECT 
 		id,
-		path,
+		"path",
 		source_url,
+		"source",
 		status,
 		added_at,
 		updated_at
-	FROM app
-		WHERE source_url=$1
+	FROM files
+		WHERE source_url=?
 	`
 
 	d.log.Debugf("executing statement: %v", statement)
 	startedAt := time.Now()
 
-	err := d.db.QueryRow(statement).Scan(
+	err := d.db.QueryRow(statement, url).Scan(
 		&file.Id,
 		&file.Path,
 		&file.SourceUrl,
@@ -55,8 +56,13 @@ func (d *Database) GetFileByUrl(url string) (*data.File, error) {
 
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to get file by url: %v", err)
+		d.log.Errorf("failed to get file by url: %v", err)
+		return nil, err
 	}
 
 	return &file, nil
@@ -71,10 +77,10 @@ func (d *Database) InsertFile(file *data.File) (int64, error) {
 		status
 	)
 	VALUES (
-		$1,
-		$2,
-		$3,
-		$4,
+		?,
+		?,
+		?,
+		?
 	)
 	RETURNING id
 	`
@@ -92,7 +98,8 @@ func (d *Database) InsertFile(file *data.File) (int64, error) {
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
 	if err != nil {
-		return 0, fmt.Errorf("failed to insert file: %v", err)
+		d.log.Errorf("failed to insert a file: %v", err)
+		return 0, err
 	}
 
 	return result.LastInsertId()
@@ -101,23 +108,24 @@ func (d *Database) InsertFile(file *data.File) (int64, error) {
 func (d *Database) UpdateFileStatus(file *data.File) error {
 	statement := `
 	UPDATE files
-		SET status = $2
+		SET status = ?
 	WHERE
-		id = $1
+		id = ?
 	`
 
 	d.log.Debugf("executing statement: %v", statement)
 	startedAt := time.Now()
 
 	_, err := d.db.Exec(statement,
-		file.Id,
 		file.Status,
+		file.Id,
 	)
 
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
 	if err != nil {
-		return fmt.Errorf("failed to update file status: %v", err)
+		d.log.Errorf("failed to update file status: %v", err)
+		return nil
 	}
 
 	return nil
@@ -126,23 +134,24 @@ func (d *Database) UpdateFileStatus(file *data.File) error {
 func (d *Database) UpdateFilePath(file *data.File) error {
 	statement := `
 	UPDATE files
-		SET path = $2
+		SET path = ?
 	WHERE
-		id = $1
+		id = ?
 	`
 
 	d.log.Debugf("executing statement: %v", statement)
 	startedAt := time.Now()
 
 	_, err := d.db.Exec(statement,
-		file.Id,
 		file.Path,
+		file.Id,
 	)
 
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
 	if err != nil {
-		return fmt.Errorf("failed to update file path: %v", err)
+		d.log.Errorf("failed to update file path: %v", err)
+		return err
 	}
 
 	return nil
@@ -152,7 +161,7 @@ func (d *Database) DeleteFile(file *data.File) error {
 	statement := `
 	DELETE FROM files
 	WHERE
-		id = $1
+		id = ?
 	`
 
 	d.log.Debugf("executing statement: %v", statement)
@@ -165,7 +174,8 @@ func (d *Database) DeleteFile(file *data.File) error {
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
 	if err != nil {
-		return fmt.Errorf("failed to delete file: %v", err)
+		d.log.Errorf("failed to delete file: %v", err)
+		return err
 	}
 
 	return nil
