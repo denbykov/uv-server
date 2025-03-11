@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -11,6 +12,7 @@ import (
 	"uv_server/internal/uv_server/common"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
+	"uv_server/internal/uv_server/data"
 	"uv_server/internal/uv_server/data/downloaders"
 	"uv_server/internal/uv_server/presentation/messages"
 
@@ -27,12 +29,15 @@ type DownloadingWfAdapter struct {
 	wf         *downloading.DownloadingWf
 
 	downloader_out chan interface{}
+
+	db *sql.DB
 }
 
 func NewDownloadingWfAdapter(
 	uuid string,
 	config *config.Config,
 	session_in chan<- *Message,
+	db *sql.DB,
 ) *DownloadingWfAdapter {
 	object := &DownloadingWfAdapter{}
 
@@ -43,6 +48,8 @@ func NewDownloadingWfAdapter(
 			"uuid":      uuid})
 	object.config = config
 	object.session_in = session_in
+
+	object.db = db
 
 	return object
 }
@@ -71,6 +78,7 @@ func (wa *DownloadingWfAdapter) CreateWf(
 		wf_in,
 		downloader,
 		wa.downloader_out,
+		data.NewDatabase(wa.db),
 	)
 }
 

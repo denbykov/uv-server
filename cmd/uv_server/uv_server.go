@@ -27,13 +27,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	migrator := data.NewMigrator(
+	DbMigrator := data.NewDbMigrator(
 		config,
 		db,
 	)
-	migrator.MigrateIfNeeded()
+	DbMigrator.MigrateIfNeeded()
 
-	server := presentation.NewServer(config)
+	server := presentation.NewServer(config, db)
 
 	err = server.Run()
 

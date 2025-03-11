@@ -18,17 +18,17 @@ import (
 
 var db_version int = 2
 
-type Migrator struct {
+type DbMigrator struct {
 	log        *logrus.Entry
 	config     *config.Config
 	db         *sql.DB
 	changesets map[int]func() error
 }
 
-func NewMigrator(config *config.Config, db *sql.DB) *Migrator {
-	object := &Migrator{}
+func NewDbMigrator(config *config.Config, db *sql.DB) *DbMigrator {
+	object := &DbMigrator{}
 
-	object.log = loggers.PresentationLogger.
+	object.log = loggers.DataLogger.
 		WithField("component", "db_migrator")
 	object.config = config
 
@@ -39,17 +39,17 @@ func NewMigrator(config *config.Config, db *sql.DB) *Migrator {
 	return object
 }
 
-func (r *Migrator) GetVersion() (int, error) {
+func (m *DbMigrator) GetVersion() (int, error) {
 	statement := `
 	SELECT name FROM sqlite_master
 	WHERE type='table'
 	AND name=$1;
 	`
 
-	r.log.Debugf("executing statement: %v", statement)
+	m.log.Debugf("executing statement: %v", statement)
 
 	var dummy interface{}
-	err := r.db.QueryRow(statement, "app").Scan(&dummy)
+	err := m.db.QueryRow(statement, "app").Scan(&dummy)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -66,10 +66,10 @@ func (r *Migrator) GetVersion() (int, error) {
 	SELECT db_version FROM app; 
 	`
 
-	r.log.Debugf("Executing statement: %v", statement)
+	m.log.Debugf("Executing statement: %v", statement)
 
 	var version int
-	err = r.db.QueryRow(statement).Scan(&version)
+	err = m.db.QueryRow(statement).Scan(&version)
 
 	if err != nil {
 		return 0, fmt.Errorf("failed to get app version: %v", err)
@@ -78,7 +78,7 @@ func (r *Migrator) GetVersion() (int, error) {
 	return version, nil
 }
 
-func (m *Migrator) setDbVersion(version int) error {
+func (m *DbMigrator) setDbVersion(version int) error {
 	statement := `
 	INSERT OR REPLACE INTO app (id, db_version)
 	VALUES (1, $1);
@@ -93,7 +93,7 @@ func (m *Migrator) setDbVersion(version int) error {
 	return nil
 }
 
-func (m *Migrator) executeFile(path string) error {
+func (m *DbMigrator) executeFile(path string) error {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("error reading file: %w", err)
@@ -121,7 +121,7 @@ func (m *Migrator) executeFile(path string) error {
 	return tx.Commit()
 }
 
-func (m *Migrator) parseFileVersion(filename string) (int, error) {
+func (m *DbMigrator) parseFileVersion(filename string) (int, error) {
 	base := filepath.Base(filename)
 
 	re := regexp.MustCompile(`^(\d+)`)
@@ -139,7 +139,7 @@ func (m *Migrator) parseFileVersion(filename string) (int, error) {
 	return version, nil
 }
 
-func (m *Migrator) registerChangesets(dir string) {
+func (m *DbMigrator) registerChangesets(dir string) {
 	entries, err := os.ReadDir(dir)
 
 	if err != nil {
@@ -161,7 +161,7 @@ func (m *Migrator) registerChangesets(dir string) {
 	}
 }
 
-func (m *Migrator) MigrateIfNeeded() {
+func (m *DbMigrator) MigrateIfNeeded() {
 	m.log.Trace("checking for migration")
 
 	ver, err := m.GetVersion()

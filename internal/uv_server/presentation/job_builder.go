@@ -1,6 +1,7 @@
 package presentation
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
@@ -14,12 +15,16 @@ import (
 type JobBuilder struct {
 	log    *logrus.Entry
 	config *config.Config
+
+	db *sql.DB
 }
 
-func NewJobBuilder(config *config.Config) *JobBuilder {
+func NewJobBuilder(config *config.Config, db *sql.DB) *JobBuilder {
 	object := &JobBuilder{}
 	object.log = loggers.PresentationLogger
 	object.config = config
+
+	object.db = db
 
 	return object
 }
@@ -44,6 +49,7 @@ func (b *JobBuilder) CreateJob(
 			uuid,
 			b.config,
 			session_in,
+			b.db,
 		)
 	default:
 		return j, fmt.Errorf("unable to create job for message type %v", typ)
