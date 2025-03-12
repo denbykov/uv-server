@@ -28,7 +28,7 @@ type DownloadingWfAdapter struct {
 	session_in chan<- *Message
 	wf         *downloading.DownloadingWf
 
-	downloader_out chan interface{}
+	downloaderOut chan interface{}
 
 	db *sql.DB
 }
@@ -61,13 +61,13 @@ func (wa *DownloadingWfAdapter) CreateWf(
 	wf_in chan interface{},
 	wf_out chan interface{},
 ) {
-	wa.downloader_out = make(chan interface{}, 1)
+	wa.downloaderOut = make(chan interface{}, 1)
 
 	downloader := downloaders.NewYtDownloader(
 		uuid,
 		config,
 		ctx,
-		wa.downloader_out,
+		wa.downloaderOut,
 	)
 
 	wa.wf = downloading.NewDownloadingWf(
@@ -77,7 +77,7 @@ func (wa *DownloadingWfAdapter) CreateWf(
 		wf_out,
 		wf_in,
 		downloader,
-		wa.downloader_out,
+		wa.downloaderOut,
 		data.NewDatabase(wa.db),
 	)
 }
@@ -111,7 +111,7 @@ func (wa *DownloadingWfAdapter) HandleWfMessage(
 ) (State, error) {
 	wa.log.Tracef("handling wf message")
 
-	if tMsg, ok := msg.(jobmessages.Progress); ok {
+	if tMsg, ok := msg.(*jobmessages.Progress); ok {
 		payload, err := json.Marshal(tMsg)
 		if err != nil {
 			wa.log.Fatalf("failed to serialize message: %v", err)

@@ -25,24 +25,34 @@ type DownloadingWf struct {
 	config *config.Config
 
 	jobCtx context.Context
-	job_in chan<- interface{}
+	jobIn  chan<- interface{}
 
-	downloader_out <-chan interface{}
-	downloader     wfData.Downloader
+	downloaderOut <-chan interface{}
+	downloader    wfData.Downloader
 
 	database data.Database
 
 	fileId int64
+
+	startDownloading func(
+		downloaderWg *sync.WaitGroup,
+		url string,
+	) error
+
+	startDownloadingFromYoutube func(
+		downloaderWg *sync.WaitGroup,
+		url string,
+	) error
 }
 
 func NewDownloadingWf(
 	uuid string,
 	config *config.Config,
 	jobCtx context.Context,
-	job_in chan<- interface{},
+	jobIn chan<- interface{},
 	job_out <-chan interface{},
 	downloader wfData.Downloader,
-	downloader_out <-chan interface{},
+	downloaderOut <-chan interface{},
 	database data.Database,
 ) *DownloadingWf {
 	object := &DownloadingWf{}
@@ -57,15 +67,33 @@ func NewDownloadingWf(
 
 	object.jobCtx = jobCtx
 
-	object.job_in = job_in
+	object.jobIn = jobIn
 	_ = job_out
 
 	object.downloader = downloader
-	object.downloader_out = downloader_out
+	object.downloaderOut = downloaderOut
 
 	object.database = database
 
+	object.injectInternalDependencies()
+
 	return object
+}
+
+func (w *DownloadingWf) injectInternalDependencies() {
+	w.startDownloading = func(
+		downloaderWg *sync.WaitGroup,
+		url string,
+	) error {
+		return startDownloading(w, downloaderWg, url)
+	}
+
+	w.startDownloadingFromYoutube = func(
+		downloaderWg *sync.WaitGroup,
+		url string,
+	) error {
+		return startDownloadingFromYoutube(w, downloaderWg, url)
+	}
 }
 
 var youtubeRegex = regexp.MustCompile(`(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})`)
@@ -80,11 +108,11 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 	err := w.startDownloading(&downloaderWg, url)
 	if err != nil {
 		w.log.Errorf("start downloading failed with error: %v", err)
-		w.job_in <- cjmessages.Error{Reason: err.Error()}
+		w.jobIn <- &cjmessages.Error{Reason: err.Error()}
 		return
 	}
 
-	w.job_in <- jobmessages.Progress{Percentage: 0}
+	w.jobIn <- &jobmessages.Progress{Percentage: 0}
 	lastProgressTs := time.Now()
 
 	for {
@@ -102,22 +130,22 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 
 			switch w.jobCtx.Err() {
 			case context.DeadlineExceeded:
-				w.job_in <- cjmessages.Error{Reason: "Timeout exceeded"}
+				w.jobIn <- &cjmessages.Error{Reason: "Timeout exceeded"}
 			case context.Canceled:
-				w.job_in <- cjmessages.Error{Reason: "Workflow cancelled"}
+				w.jobIn <- &cjmessages.Error{Reason: "Workflow cancelled"}
 			}
 
 			return
-		case msg := <-w.downloader_out:
+		case msg := <-w.downloaderOut:
 			if tMsg, ok := msg.(*wfData.Progress); ok {
 				now := time.Now()
 				if now.Sub(lastProgressTs).Seconds() > 0 {
-					w.job_in <- jobmessages.Progress{Percentage: tMsg.Percentage}
+					w.jobIn <- &jobmessages.Progress{Percentage: tMsg.Percentage}
 					lastProgressTs = now
 				}
 			} else if tMsg, ok := msg.(*wfData.Error); ok {
-				w.job_in <- cjmessages.Error{Reason: tMsg.Reason}
 				downloaderWg.Wait()
+				w.jobIn <- &cjmessages.Error{Reason: tMsg.Reason}
 				return
 			} else if tMsg, ok := msg.(*wfData.Done); ok {
 				file := &data.File{
@@ -137,12 +165,12 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 				}
 
 				downloaderWg.Wait()
-				w.job_in <- jobmessages.Progress{Percentage: 100}
-				w.job_in <- cjmessages.Done{}
+				w.jobIn <- &jobmessages.Progress{Percentage: 100}
+				w.jobIn <- &cjmessages.Done{}
 				return
 			} else {
-				w.job_in <- cjmessages.InternalError
 				downloaderWg.Wait()
+				w.jobIn <- &cjmessages.InternalError
 				return
 			}
 		}
@@ -170,7 +198,8 @@ func normalizeYoutubeUrl(url string) (string, error) {
 	return fmt.Sprintf("https://www.youtube.com/watch?v=%s", matches[1]), nil
 }
 
-func (w *DownloadingWf) startDownloading(
+func startDownloading(
+	w *DownloadingWf,
 	downloaderWg *sync.WaitGroup,
 	url string,
 ) error {
@@ -229,7 +258,8 @@ func (w *DownloadingWf) normalizeUrl(
 	return "", nil
 }
 
-func (w *DownloadingWf) startDownloadingFromYoutube(
+func startDownloadingFromYoutube(
+	w *DownloadingWf,
 	downloaderWg *sync.WaitGroup,
 	url string,
 ) error {

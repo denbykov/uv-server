@@ -188,18 +188,18 @@ func (j *Job) active(
 				j.session_in <- err_msg
 			}
 		case msg := <-j.wf_out:
-			if tMsg, ok := msg.(cjmessages.Error); ok {
+			if tMsg, ok := msg.(*cjmessages.Error); ok {
 				err_msg := j.buildErrorMessage(tMsg.Reason)
 				j.session_in <- err_msg
 				return None
-			} else if _, ok := msg.(cjmessages.Done); ok {
+			} else if _, ok := msg.(*cjmessages.Done); ok {
 				j.session_in <- j.buildDoneMessage()
 				return None
 			} else {
 				state, err := j.wf_adatapter.HandleWfMessage(msg)
 
 				if err != nil {
-					err_msg := j.buildErrorMessage(tMsg.Reason)
+					err_msg := j.buildErrorMessage(err.Error())
 					j.session_in <- err_msg
 					return None
 				}
