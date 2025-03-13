@@ -143,9 +143,16 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 					w.jobIn <- &jobmessages.Progress{Percentage: tMsg.Percentage}
 					lastProgressTs = now
 				}
-			} else if tMsg, ok := msg.(*wfData.Error); ok {
+			} else if _, ok := msg.(*wfData.Error); ok {
 				downloaderWg.Wait()
-				w.jobIn <- &cjmessages.Error{Reason: tMsg.Reason}
+				err := w.database.DeleteFile(&data.File{Id: w.fileId})
+				if err != nil {
+					w.log.Fatalf(
+						"failed to delete file with id %v, error is %v",
+						w.fileId, err)
+				}
+
+				w.jobIn <- &cjmessages.Error{Reason: "downloading failed"}
 				return
 			} else if tMsg, ok := msg.(*wfData.Done); ok {
 				file := &data.File{

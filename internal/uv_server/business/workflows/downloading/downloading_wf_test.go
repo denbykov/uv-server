@@ -2,6 +2,7 @@ package downloading
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"sync"
 	"testing"
@@ -13,6 +14,7 @@ import (
 
 	cjmessages "uv_server/internal/uv_server/business/common_job_messages"
 	dmocks "uv_server/internal/uv_server/business/data/mocks"
+	wfData "uv_server/internal/uv_server/business/workflows/downloading/data"
 	bdmocks "uv_server/internal/uv_server/business/workflows/downloading/data/mocks"
 	jobmessages "uv_server/internal/uv_server/business/workflows/downloading/job_messages"
 
@@ -297,6 +299,150 @@ func TestRun_ContextCancelled(t *testing.T) {
 	}
 
 	assert.Equal(t, file.Id, wf.fileId)
+
+	downloaderMock.AssertExpectations(t)
+	dbMock.AssertExpectations(t)
+}
+
+func TestRun_HappyPass(t *testing.T) {
+	downloaderMock := new(StartDownloadingMock)
+	dbMock := dmocks.NewDatabase(t)
+
+	jobIn := make(chan interface{}, 1)
+	downloaderOut := make(chan interface{}, 1)
+
+	ctx, _ := context.WithCancel(context.Background())
+
+	wf := newDownloadingWf()
+	wf.jobIn = jobIn
+	wf.jobCtx = ctx
+	wf.database = dbMock
+	wf.downloaderOut = downloaderOut
+	wf.fileId = 1
+	wf.startDownloading = func(
+		downloaderWg *sync.WaitGroup,
+		url string,
+	) error {
+		return downloaderMock.do(downloaderWg, url)
+	}
+
+	var wg sync.WaitGroup
+	url := "https://www.youtube.com/watch?v=2AB3_l0iqSk"
+	request := jobmessages.Request{Url: &url}
+
+	downloaderMock.On("do", mock.Anything, url).Return(nil)
+
+	var updateFilePathFile *data.File
+	dbMock.On("UpdateFilePath", mock.Anything).Return(nil).
+		Run(func(args mock.Arguments) {
+			updateFilePathFile = args.Get(0).(*data.File)
+		})
+
+	var UpdateFileStatus *data.File
+	dbMock.On("UpdateFileStatus", mock.Anything).Return(nil).
+		Run(func(args mock.Arguments) {
+			UpdateFileStatus = args.Get(0).(*data.File)
+		})
+
+	wg.Add(1)
+	go wf.Run(&wg, &request)
+
+	expectedPercentage := 33.0
+	expectedPercentage2 := 33.0
+	filename := "filename"
+
+	go func() {
+		time.Sleep(1200 * time.Millisecond)
+		downloaderOut <- &wfData.Progress{Percentage: expectedPercentage}
+		downloaderOut <- &wfData.Progress{Percentage: 50.0}
+		time.Sleep(1200 * time.Millisecond)
+		downloaderOut <- &wfData.Progress{Percentage: expectedPercentage2}
+		downloaderOut <- &wfData.Done{Filename: filename}
+	}()
+
+	msg := <-jobIn
+	tMsg := msg.(*jobmessages.Progress)
+	assert.Equal(t, tMsg.Percentage, float64(0))
+
+	msg = <-jobIn
+	tMsg = msg.(*jobmessages.Progress)
+	assert.Equal(t, tMsg.Percentage, expectedPercentage)
+
+	msg = <-jobIn
+	tMsg = msg.(*jobmessages.Progress)
+	assert.Equal(t, tMsg.Percentage, expectedPercentage2)
+
+	msg = <-jobIn
+	tMsg = msg.(*jobmessages.Progress)
+	assert.Equal(t, tMsg.Percentage, float64(100))
+
+	msg = <-jobIn
+	_, ok := msg.(*cjmessages.Done)
+	assert.True(t, ok)
+
+	wg.Wait()
+
+	assert.Equal(t, updateFilePathFile.Id, wf.fileId)
+	assert.Equal(t, updateFilePathFile.Path, sql.NullString{String: filename, Valid: true})
+	assert.Equal(t, UpdateFileStatus.Id, wf.fileId)
+	assert.Equal(t, UpdateFileStatus.Status, data.FsFinished)
+
+	downloaderMock.AssertExpectations(t)
+	dbMock.AssertExpectations(t)
+}
+
+func TestRun_DownloadingFailed(t *testing.T) {
+	downloaderMock := new(StartDownloadingMock)
+	dbMock := dmocks.NewDatabase(t)
+
+	jobIn := make(chan interface{}, 1)
+	downloaderOut := make(chan interface{}, 1)
+
+	ctx, _ := context.WithCancel(context.Background())
+
+	wf := newDownloadingWf()
+	wf.jobIn = jobIn
+	wf.jobCtx = ctx
+	wf.database = dbMock
+	wf.downloaderOut = downloaderOut
+	wf.fileId = 1
+	wf.startDownloading = func(
+		downloaderWg *sync.WaitGroup,
+		url string,
+	) error {
+		return downloaderMock.do(downloaderWg, url)
+	}
+
+	var wg sync.WaitGroup
+	url := "https://www.youtube.com/watch?v=2AB3_l0iqSk"
+	request := jobmessages.Request{Url: &url}
+
+	downloaderMock.On("do", mock.Anything, url).Return(nil)
+
+	var deleteFileFile *data.File
+	dbMock.On("DeleteFile", mock.Anything).Return(nil).
+		Run(func(args mock.Arguments) {
+			deleteFileFile = args.Get(0).(*data.File)
+		})
+
+	wg.Add(1)
+	go wf.Run(&wg, &request)
+
+	go func() {
+		downloaderOut <- &wfData.Error{Reason: "something went wrong"}
+	}()
+
+	msg := <-jobIn
+	tMsg := msg.(*jobmessages.Progress)
+	assert.Equal(t, tMsg.Percentage, float64(0))
+
+	msg = <-jobIn
+	teMsg := msg.(*cjmessages.Error)
+	assert.Equal(t, teMsg.Reason, "downloading failed")
+
+	wg.Wait()
+
+	assert.Equal(t, deleteFileFile.Id, wf.fileId)
 
 	downloaderMock.AssertExpectations(t)
 	dbMock.AssertExpectations(t)
