@@ -4,10 +4,10 @@ import (
 	"context"
 	"sync"
 	"time"
+	"uv_server/internal/uv_protocol/presentation/messages"
 	"uv_server/internal/uv_server/business/workflows/downloading"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
-	"uv_server/internal/uv_server/presentation/messages"
 
 	"github.com/sirupsen/logrus"
 )

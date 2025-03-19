@@ -1,7 +1,7 @@
 package jobs
 
 import (
-	"uv_server/internal/uv_server/presentation/messages"
+	"uv_server/internal/uv_protocol/presentation/messages"
 )
 
 type Job interface {

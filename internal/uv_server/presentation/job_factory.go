@@ -3,10 +3,10 @@ package presentation
 import (
 	"github.com/sirupsen/logrus"
 
+	"uv_server/internal/uv_protocol/presentation/messages"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 	"uv_server/internal/uv_server/presentation/jobs"
-	"uv_server/internal/uv_server/presentation/messages"
 )
 
 type JobFactory struct {

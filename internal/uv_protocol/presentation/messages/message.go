@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"os"
 	"slices"
+	"strings"
 
 	"uv_server/internal/uv_server/common"
 	"uv_server/internal/uv_server/common/loggers"
@@ -14,10 +17,10 @@ import (
 type Type int
 
 const (
-	DownloadingRequest   Type = 1
-	DownloadingCompleted Type = 10
-	DownloadingProgress  Type = 11
-	DownloadingCancelled Type = 12
+	DownloadingRequest Type = iota + 1
+	DownloadingCompleted
+	DownloadingProgress
+	DownloadingCancelled
 )
 
 func (t Type) String() string {
@@ -33,6 +36,33 @@ func (t Type) String() string {
 	default:
 		return fmt.Sprintf("Unknown: %d", t)
 	}
+}
+
+func GetTypes() []map[string]string {
+	var result []map[string]string
+
+	for i := 1; ; i++ {
+		t := Type(i)
+		str := t.String()
+		if str == fmt.Sprintf("Unknown: %d", i) {
+			break
+		}
+		result = append(result, map[string]string{
+			fmt.Sprintf("%d", i): str,
+		})
+	}
+
+	return result
+}
+
+func GetTypeHint() string {
+	var validTypes []string
+	for _, item := range GetTypes() {
+		for key, value := range item {
+			validTypes = append(validTypes, fmt.Sprintf("%s (%s)", key, value))
+		}
+	}
+	return strings.Join(validTypes, ", ")
 }
 
 type Header struct {
@@ -101,4 +131,36 @@ func (m *Message) Serialize() []byte {
 	result = slices.Concat(result, header, m.Payload)
 
 	return result
+}
+
+func GenerateJSFile(filename string) error {
+	types := GetTypes()
+
+	var content strings.Builder
+	content.WriteString("const types = {\n")
+	for _, item := range types {
+		for key, value := range item {
+			content.WriteString(fmt.Sprintf(`  "%s": "%s",`+"\n", key, value))
+		}
+	}
+	content.WriteString("};\n\nexport default types;\n")
+
+	return os.WriteFile(filename, []byte(content.String()), 0644)
+}
+
+func ValidType(type_flag string) (bool, error) {
+
+	allowedTypes := make(map[string]string)
+	for _, item := range GetTypes() {
+		maps.Copy(allowedTypes, item)
+	}
+	_, ok := allowedTypes[type_flag]
+	if !ok {
+		var validTypes []string
+		for key, value := range allowedTypes {
+			validTypes = append(validTypes, fmt.Sprintf("%s (%s)", key, value))
+		}
+		return false, errors.New("Invalid type. Allowed values: " + strings.Join(validTypes, ", "))
+	}
+	return true, nil
 }
