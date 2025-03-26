@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
     
     Examples:
     1. Generate a hexdump packet from a date:
-       build-packet -gen --data {"url": "http://example.com"} -path ./test_package.hex
+       build-packet -gen -t DownloadingRequest -p {"url": "http://example.com"}
         
     By leveraging this tool, developers can efficiently create test cases for uv_server, ensuring 
     robustness, reliability, and correctness in handling binary data streams.`,
@@ -31,6 +31,4 @@ func Execute() {
 	}
 }
 
-func init() {
-	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
+func init() {}

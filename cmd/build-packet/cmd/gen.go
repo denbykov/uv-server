@@ -1,75 +1,84 @@
 package cmd
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
 
-	gen "uv_server/internal/build-packet/presentation"
 	msg "uv_server/internal/uv_protocol/presentation/messages"
 
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
 var (
-	Path     string
-	Data     string
-	TypeFlag string
-	Hexdump  bool
-	JSTFile  bool
+	Payload string
+	Type    string
 )
 
 var genCmd = &cobra.Command{
 	Use:   "gen",
 	Short: "Generate a hexdump packet",
-	Long: `Encode JSON header and data into a binary hexdump.
-If a file path is specified, the output is saved; otherwise, it is printed to the terminal.`,
+	Long:  `Encode JSON header and data into a binary hexdump.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().Changed("jst") {
-			if Path == "" {
-				return errors.New("path is required")
-			}
-			return msg.GenerateJSFile(Path)
+		if Type == "" {
+			return errors.New("type is required")
 		}
-		if cmd.Flags().Changed("hexdump") {
-			if TypeFlag == "" {
-				return errors.New("type is required")
-			}
-			if Data == "" {
-				return errors.New("data is required")
-			}
-			valid, err := msg.ValidType(TypeFlag)
-			if err != nil {
-				return err
-			}
-			if !valid {
-				return errors.New("invalid type")
-			}
-
-			packetType, _ := strconv.Atoi(TypeFlag)
-			packet, err := gen.GenHexdumpPacket(packetType, []byte(Data))
-
-			if Path != "" {
-				return gen.SaveHexdumpPacket(packet, Path)
-			}
-
-			if err != nil {
-				return err
-			}
-			fmt.Println(packet)
-			return nil
+		if Payload == "" {
+			return errors.New("payload is required")
 		}
-
+		valid, err := msg.ValidType(Type)
+		if err != nil {
+			return err
+		}
+		if !valid {
+			return errors.New("invalid type")
+		}
+		packetType, _ := strconv.Atoi(Type)
+		packet, err := GenHexdump(packetType, []byte(Payload))
+		if err != nil {
+			return err
+		}
+		fmt.Println(packet)
 		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(genCmd)
+	genCmd.PersistentFlags().StringVarP(&Payload, "payload", "p", "", "JSON formatted payload (required)")
+	genCmd.PersistentFlags().StringVarP(&Type, "type", "t", "", "Type of the packet (required). Available: "+msg.GetTypeHint())
+}
 
-	genCmd.PersistentFlags().StringVarP(&Path, "path", "p", "", "Define the path to save hexdump packet.")
-	genCmd.PersistentFlags().StringVarP(&Data, "data", "d", "", "JSON formatted data (required)")
-	genCmd.PersistentFlags().StringVarP(&TypeFlag, "type", "t", "", "Type of the packet (required). Available: "+msg.GetTypeHint())
-	genCmd.PersistentFlags().BoolVarP(&Hexdump, "hexdump", "x", false, "Print hexdump to the terminal")
-	genCmd.PersistentFlags().BoolVarP(&JSTFile, "jst", "j", false, "Path to the JS Type file")
+func GenHeader(header_type int) (*msg.Header, error) {
+	uuidStr := uuid.New().String()
+	return &msg.Header{
+		Type: msg.Type(header_type),
+		Uuid: &uuidStr,
+	}, nil
+}
+
+func GenMessage(header_type int, payload []byte) (*msg.Message, error) {
+	header, err := GenHeader(header_type)
+	if err != nil {
+		return nil, err
+	}
+
+	return &msg.Message{
+		Header:  header,
+		Payload: payload,
+	}, nil
+}
+
+func GenHexdump(header_type int, data []byte) (string, error) {
+	msg, err := GenMessage(header_type, data)
+	if err != nil {
+		return "", err
+	}
+
+	serialized := msg.Serialize()
+	hexdump := hex.EncodeToString(serialized)
+
+	return hexdump, nil
 }
