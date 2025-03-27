@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strconv"
 
 	msg "uv_server/internal/uv_protocol"
 
@@ -15,11 +14,12 @@ import (
 var (
 	Payload string
 	Type    string
+	Uuid    string
 )
 
 var genCmd = &cobra.Command{
 	Use:   "gen",
-	Short: "Generate a hexdump packet",
+	Short: "Generate a packet hexdump",
 	Long:  `Encode JSON header and data into a binary hexdump.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if Type == "" {
@@ -35,8 +35,11 @@ var genCmd = &cobra.Command{
 		if !valid {
 			return errors.New("invalid type")
 		}
-		packetType, _ := strconv.Atoi(Type)
-		packet, err := GenHexdump(packetType, []byte(Payload))
+		packetType, err := msg.GetType(Type)
+		if err != nil {
+			return err
+		}
+		packet, err := GenHexdump(packetType, Uuid, []byte(Payload))
 		if err != nil {
 			return err
 		}
@@ -49,18 +52,24 @@ func init() {
 	rootCmd.AddCommand(genCmd)
 	genCmd.PersistentFlags().StringVarP(&Payload, "payload", "p", "", "JSON formatted payload (required)")
 	genCmd.PersistentFlags().StringVarP(&Type, "type", "t", "", "Type of the packet (required). Available: "+msg.GetTypeHint())
+	genCmd.PersistentFlags().StringVarP(&Uuid, "uuid", "u", "", "Enter your own Universally Unique Identifier (UUID) (not required)")
 }
 
-func GenHeader(header_type int) (*msg.Header, error) {
-	uuidStr := uuid.New().String()
+func GenHeader(header_type msg.Type, _uuid string) (*msg.Header, error) {
+
+	if _uuid == "" {
+		newUuid := uuid.New().String()
+		_uuid = newUuid
+	}
+	fmt.Printf("UUID: %s\n", _uuid)
 	return &msg.Header{
-		Type: msg.Type(header_type),
-		Uuid: &uuidStr,
+		Type: header_type,
+		Uuid: &_uuid,
 	}, nil
 }
 
-func GenMessage(header_type int, payload []byte) (*msg.Message, error) {
-	header, err := GenHeader(header_type)
+func GenMessage(header_type msg.Type, _uuid string, payload []byte) (*msg.Message, error) {
+	header, err := GenHeader(header_type, _uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +80,8 @@ func GenMessage(header_type int, payload []byte) (*msg.Message, error) {
 	}, nil
 }
 
-func GenHexdump(header_type int, data []byte) (string, error) {
-	msg, err := GenMessage(header_type, data)
+func GenHexdump(header_type msg.Type, _uuid string, data []byte) (string, error) {
+	msg, err := GenMessage(header_type, _uuid, data)
 	if err != nil {
 		return "", err
 	}

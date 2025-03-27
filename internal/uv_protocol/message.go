@@ -41,7 +41,7 @@ func (t Type) String() string {
 
 func GetTypes() []string {
 	var result []string
-	for i := 1; ; i++ {
+	for i := 0; ; i++ {
 		t := Type(i)
 		str := t.String()
 		if str == fmt.Sprintf("Unknown: %d", i) {
@@ -50,6 +50,16 @@ func GetTypes() []string {
 		result = append(result, str)
 	}
 	return result
+}
+
+func GetType(name string) (Type, error) {
+	var types = GetTypes()
+	for index, item := range types {
+		if item == name {
+			return Type(index), nil
+		}
+	}
+	return 0, errors.New("type is not found")
 }
 
 func GetTypeHint() string {
