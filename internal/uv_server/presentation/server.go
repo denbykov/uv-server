@@ -42,12 +42,12 @@ func (s *Server) Run() error {
 
 	port := fmt.Sprintf(":%v", s.config.Port)
 
-	s.log.Infof("Websocket server started on %s", port)
+	s.log.Infof("websocket server started on %s", port)
 	return http.ListenAndServe(port, nil)
 }
 
 func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
-	s.log.Infof("Handling connection from %s", r.Host)
+	s.log.Infof("handling connection from %s", r.RemoteAddr)
 
 	ws, err := upgrader.Upgrade(w, r, nil)
 
@@ -57,7 +57,7 @@ func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
 
 	// Could add session removal later, but as I'm expecting to have
 	// only one client at the moment so I do not really care
-	session := NewSession(s.config, ws, r.Host, s.jobBuilder, s.db)
+	session := NewSession(s.config, ws, r.RemoteAddr, s.jobBuilder, s.db)
 	s.sessions = append(s.sessions, session)
 	session.Run()
 }
