@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	msg "uv_server/internal/uv_protocol/presentation/messages"
+	msg "uv_server/internal/uv_protocol"
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"

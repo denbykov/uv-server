@@ -1,4 +1,4 @@
-package messages
+package uv_protocol
 
 import (
 	"encoding/binary"
@@ -15,22 +15,25 @@ import (
 type Type int
 
 const (
-	DownloadingRequest Type = iota + 1
-	DownloadingCompleted
+	DownloadingRequest Type = iota
 	DownloadingProgress
-	DownloadingCancelled
+	CancelRequest
+	Error
+	Done
 )
 
 func (t Type) String() string {
 	switch t {
 	case DownloadingRequest:
 		return "DownloadingRequest"
-	case DownloadingCompleted:
-		return "DownloadingCompleted"
 	case DownloadingProgress:
 		return "DownloadingProgress"
-	case DownloadingCancelled:
-		return "DownloadingCancelled"
+	case CancelRequest:
+		return "CancelRequest"
+	case Error:
+		return "Error"
+	case Done:
+		return "Done"
 	default:
 		return fmt.Sprintf("Unknown: %d", t)
 	}
