@@ -55,21 +55,21 @@ func init() {
 	genCmd.PersistentFlags().StringVarP(&Uuid, "uuid", "u", "", "Enter your own Universally Unique Identifier (UUID) (not required)")
 }
 
-func GenHeader(header_type msg.Type, _uuid string) (*msg.Header, error) {
+func GenHeader(headerType msg.Type, uuidStr string) (*msg.Header, error) {
 
-	if _uuid == "" {
+	if uuidStr == "" {
 		newUuid := uuid.New().String()
-		_uuid = newUuid
+		uuidStr = newUuid
 	}
-	fmt.Printf("UUID: %s\n", _uuid)
+	fmt.Printf("UUID: %s\n", uuidStr)
 	return &msg.Header{
-		Type: header_type,
-		Uuid: &_uuid,
+		Type: headerType,
+		Uuid: &uuidStr,
 	}, nil
 }
 
-func GenMessage(header_type msg.Type, _uuid string, payload []byte) (*msg.Message, error) {
-	header, err := GenHeader(header_type, _uuid)
+func GenMessage(headerType msg.Type, uuidStr string, payload []byte) (*msg.Message, error) {
+	header, err := GenHeader(headerType, uuidStr)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +80,8 @@ func GenMessage(header_type msg.Type, _uuid string, payload []byte) (*msg.Messag
 	}, nil
 }
 
-func GenHexdump(header_type msg.Type, _uuid string, data []byte) (string, error) {
-	msg, err := GenMessage(header_type, _uuid, data)
+func GenHexdump(headerType msg.Type, uuidStr string, data []byte) (string, error) {
+	msg, err := GenMessage(headerType, uuidStr, data)
 	if err != nil {
 		return "", err
 	}
