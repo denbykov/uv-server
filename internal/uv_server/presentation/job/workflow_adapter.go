@@ -3,8 +3,8 @@ package job
 import (
 	"context"
 	"sync"
+	"uv_server/internal/uv_protocol"
 	"uv_server/internal/uv_server/config"
-	"uv_server/internal/uv_server/presentation/messages"
 )
 
 type WorkflowAdapter interface {
@@ -16,7 +16,7 @@ type WorkflowAdapter interface {
 		wf_out chan interface{},
 	)
 
-	RunWf(wg *sync.WaitGroup, msg *messages.Message) error
-	HandleSessionMessage(message *messages.Message) error
+	RunWf(wg *sync.WaitGroup, msg *uv_protocol.Message) error
+	HandleSessionMessage(message *uv_protocol.Message) error
 	HandleWfMessage(message interface{}) (State, error)
 }

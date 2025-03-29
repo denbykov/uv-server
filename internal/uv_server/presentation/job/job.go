@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"uv_server/internal/uv_protocol"
 	cjmessages "uv_server/internal/uv_server/business/common_job_messages"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
-	"uv_server/internal/uv_server/presentation/messages"
 
 	"github.com/sirupsen/logrus"
 )
@@ -39,7 +39,7 @@ func (t State) String() string {
 }
 
 type Message struct {
-	Msg  *messages.Message
+	Msg  *uv_protocol.Message
 	Done bool
 }
 
@@ -47,7 +47,7 @@ type Job struct {
 	uuid string
 
 	session_in  chan<- *Message
-	session_out chan *messages.Message
+	session_out chan *uv_protocol.Message
 
 	log    *logrus.Entry
 	config *config.Config
@@ -74,7 +74,7 @@ func NewJob(
 	object.uuid = uuid
 	object.session_in = session_in
 
-	object.session_out = make(chan *messages.Message, 1)
+	object.session_out = make(chan *uv_protocol.Message, 1)
 
 	object.wf_in = make(chan interface{}, 1)
 	object.wf_out = make(chan interface{}, 1)
@@ -84,15 +84,15 @@ func NewJob(
 	return object
 }
 
-func (j *Job) Notify(m *messages.Message) {
+func (j *Job) Notify(m *uv_protocol.Message) {
 	j.log.Tracef("Notify: handling message %v", m)
 	j.session_out <- m
 }
 
-func (j *Job) Run(m *messages.Message) {
+func (j *Job) Run(m *uv_protocol.Message) {
 	j.log.Tracef("Run: handling message %v", m)
 
-	if m.Header.Type != messages.DownloadingRequest {
+	if m.Header.Type != uv_protocol.DownloadingRequest {
 		j.log.Fatalf("Run: unextected message type, got %v instead of Download", m.Header.Type)
 	}
 
@@ -138,10 +138,10 @@ func (j *Job) buildErrorMessage(reason string) *Message {
 	}
 
 	err_msg := &Message{
-		Msg: &messages.Message{
-			Header: &messages.Header{
+		Msg: &uv_protocol.Message{
+			Header: &uv_protocol.Header{
 				Uuid: &j.uuid,
-				Type: messages.Error,
+				Type: uv_protocol.Error,
 			},
 			Payload: payload,
 		},
@@ -153,10 +153,10 @@ func (j *Job) buildErrorMessage(reason string) *Message {
 
 func (j *Job) buildDoneMessage() *Message {
 	msg := &Message{
-		Msg: &messages.Message{
-			Header: &messages.Header{
+		Msg: &uv_protocol.Message{
+			Header: &uv_protocol.Header{
 				Uuid: &j.uuid,
-				Type: messages.Done,
+				Type: uv_protocol.Done,
 			},
 			Payload: nil,
 		},
@@ -175,7 +175,7 @@ func (j *Job) active(
 		case <-ctx.Done():
 			return Canceled
 		case msg := <-j.session_out:
-			if msg.Header.Type == messages.CancelRequest {
+			if msg.Header.Type == uv_protocol.CancelRequest {
 				cancel()
 				return Canceled
 			}

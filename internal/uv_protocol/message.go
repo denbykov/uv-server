@@ -1,4 +1,4 @@
-package messages
+package uv_protocol
 
 import (
 	"encoding/binary"
@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"uv_server/internal/uv_server/common"
 	"uv_server/internal/uv_server/common/loggers"
@@ -14,11 +15,13 @@ import (
 type Type int
 
 const (
-	DownloadingRequest  Type = 1
-	DownloadingProgress Type = 10
-	CancelRequest       Type = 2
-	Error               Type = 3
-	Done                Type = 4
+	DownloadingRequest Type = iota
+	DownloadingProgress
+	CancelRequest
+	Error
+	Done
+
+	Max
 )
 
 func (t Type) String() string {
@@ -36,6 +39,32 @@ func (t Type) String() string {
 	default:
 		return fmt.Sprintf("Unknown: %d", t)
 	}
+}
+
+func GetTypes() []string {
+	var names []string
+	for t := DownloadingRequest; t < Max; t++ {
+		names = append(names, t.String())
+	}
+	return names
+}
+
+func GetType(name string) (Type, error) {
+	var types = GetTypes()
+	for index, item := range types {
+		if item == name {
+			return Type(index), nil
+		}
+	}
+	return 0, errors.New("type is not found")
+}
+
+func GetTypeHint() string {
+	var validTypes []string
+	for _, item := range GetTypes() {
+		validTypes = append(validTypes, string(item))
+	}
+	return strings.Join(validTypes, ", ")
 }
 
 type Header struct {
@@ -104,4 +133,17 @@ func (m *Message) Serialize() []byte {
 	result = slices.Concat(result, header, m.Payload)
 
 	return result
+}
+
+func ValidType(type_flag string) (bool, error) {
+
+	allowedTypes := []string{}
+	allowedTypes = append(allowedTypes, GetTypes()...)
+	ok := slices.Contains(allowedTypes, type_flag)
+	if !ok {
+		var validTypes []string
+		validTypes = append(validTypes, allowedTypes...)
+		return false, errors.New("Invalid type. Allowed values: " + strings.Join(validTypes, ", "))
+	}
+	return true, nil
 }
