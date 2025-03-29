@@ -104,6 +104,13 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 	url := *request.Url
 	w.log.Tracef("serving downloading request for url: %v", url)
 
+	if len(url) == 0 {
+		errMsg := "url is empty"
+		w.log.Errorf(errMsg)
+		w.jobIn <- &cjmessages.Error{Reason: errMsg}
+		return
+	}
+
 	var downloaderWg sync.WaitGroup
 	err := w.startDownloading(&downloaderWg, url)
 	if err != nil {
@@ -193,7 +200,9 @@ func (w *DownloadingWf) getSourceFromUrl(url string) (data.Source, error) {
 		return data.Youtube, nil
 	}
 
-	return data.Unknown, fmt.Errorf("unable to idenitify source of the url: %v", url)
+	w.log.Errorf("unable to idenitify source of the url: %v", url)
+
+	return data.Unknown, fmt.Errorf("unable to identify source")
 }
 
 func normalizeYoutubeUrl(url string) (string, error) {
