@@ -40,16 +40,11 @@ func (t Type) String() string {
 }
 
 func GetTypes() []string {
-	var result []string
-	for i := 0; ; i++ {
-		t := Type(i)
-		str := t.String()
-		if str == fmt.Sprintf("Unknown: %d", i) {
-			break
-		}
-		result = append(result, str)
+	var names []string
+	for t := DownloadingRequest; t <= Done; t++ {
+		names = append(names, t.String())
 	}
-	return result
+	return names
 }
 
 func GetType(name string) (Type, error) {
