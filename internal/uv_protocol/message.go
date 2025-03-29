@@ -20,6 +20,8 @@ const (
 	CancelRequest
 	Error
 	Done
+
+	Max
 )
 
 func (t Type) String() string {
@@ -41,7 +43,7 @@ func (t Type) String() string {
 
 func GetTypes() []string {
 	var names []string
-	for t := DownloadingRequest; t <= Done; t++ {
+	for t := DownloadingRequest; t < Max; t++ {
 		names = append(names, t.String())
 	}
 	return names
