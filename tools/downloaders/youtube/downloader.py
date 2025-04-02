@@ -35,7 +35,7 @@ def download_file(url: str, dir: str, ffmpeg_location: str):
             
             # data["speed"]
             
-            print(dumps(progress))
+            print(dumps(progress), flush=True)
 
     ydl_opts = {
         "format": "bestaudio/best",
@@ -83,4 +83,4 @@ if __name__ == "__main__":
         "filename": filename
     }
     
-    print(dumps(progress))
+    print(dumps(progress), flush=True)

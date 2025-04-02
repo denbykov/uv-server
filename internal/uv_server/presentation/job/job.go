@@ -96,7 +96,7 @@ func (j *Job) Run(m *messages.Message) {
 		j.log.Fatalf("Run: unextected message type, got %v instead of Download", m.Header.Type)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	j.wf_adatapter.CreateWf(
