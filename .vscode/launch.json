@@ -8,6 +8,9 @@
             "mode": "auto",
             "program": "./cmd/uv_server/uv_server.go",
             "cwd": "debug",
+            "env": {
+                "CGO_ENABLED": "1"
+            }
         }
     ]
 }
