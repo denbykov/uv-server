@@ -1,4 +1,4 @@
-package messages
+package uv_protocol
 
 import (
 	"encoding/binary"
@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"uv_server/internal/uv_server/common"
 	"uv_server/internal/uv_server/common/loggers"
@@ -14,11 +15,13 @@ import (
 type Type int
 
 const (
-	DownloadingRequest  Type = 1
-	DownloadingProgress Type = 10
-	CancelRequest       Type = 2
-	Error               Type = 3
-	Done                Type = 4
+	DownloadingRequest Type = iota
+	DownloadingProgress
+	CancelRequest
+	Error
+	Done
+
+	Max
 )
 
 func (t Type) String() string {
@@ -36,6 +39,29 @@ func (t Type) String() string {
 	default:
 		return fmt.Sprintf("Unknown: %d", t)
 	}
+}
+
+func GetTypes() []string {
+	var types []string
+	for t := DownloadingRequest; t < Max; t++ {
+		types = append(types, t.String())
+	}
+	return types
+}
+
+func GetType(name string) (Type, error) {
+	var types = GetTypes()
+	for index, item := range types {
+		if item == name {
+			return Type(index), nil
+		}
+	}
+	return 0, errors.New("type is not found")
+}
+
+func GetTypeHint() string {
+	validTypes := GetTypes()
+	return strings.Join(validTypes, ", ")
 }
 
 type Header struct {
@@ -104,4 +130,12 @@ func (m *Message) Serialize() []byte {
 	result = slices.Concat(result, header, m.Payload)
 
 	return result
+}
+
+func ValidType(name string) (bool, error) {
+	types := GetTypes()
+	if slices.Contains(types, name) {
+		return true, nil
+	}
+	return false, errors.New("invalid type \"" + name + "\". Allowed values: " + strings.Join(types, ", "))
 }

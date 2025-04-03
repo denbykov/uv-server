@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"uv_server/internal/uv_protocol"
 	"uv_server/internal/uv_server/business/workflows/downloading"
 	jobmessages "uv_server/internal/uv_server/business/workflows/downloading/job_messages"
 	"uv_server/internal/uv_server/common"
@@ -14,7 +15,6 @@ import (
 	"uv_server/internal/uv_server/config"
 	"uv_server/internal/uv_server/data"
 	"uv_server/internal/uv_server/data/downloaders"
-	"uv_server/internal/uv_server/presentation/messages"
 
 	"github.com/sirupsen/logrus"
 )
@@ -84,7 +84,7 @@ func (wa *DownloadingWfAdapter) CreateWf(
 
 func (wa *DownloadingWfAdapter) RunWf(
 	wg *sync.WaitGroup,
-	msg *messages.Message,
+	msg *uv_protocol.Message,
 ) error {
 	request := &jobmessages.Request{}
 	err := common.UnmarshalStrict(msg.Payload, request)
@@ -100,7 +100,7 @@ func (wa *DownloadingWfAdapter) RunWf(
 }
 
 func (wa *DownloadingWfAdapter) HandleSessionMessage(
-	msg *messages.Message,
+	msg *uv_protocol.Message,
 ) error {
 	wa.log.Tracef("handling session message: %v", msg.Header.Type)
 	return fmt.Errorf("unexpected message %v", msg.Header.Type)
@@ -118,10 +118,10 @@ func (wa *DownloadingWfAdapter) HandleWfMessage(
 		}
 
 		msg := &Message{
-			Msg: &messages.Message{
-				Header: &messages.Header{
+			Msg: &uv_protocol.Message{
+				Header: &uv_protocol.Header{
 					Uuid: &wa.uuid,
-					Type: messages.DownloadingProgress,
+					Type: uv_protocol.DownloadingProgress,
 				},
 				Payload: payload,
 			},

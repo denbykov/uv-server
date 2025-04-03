@@ -6,10 +6,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"uv_server/internal/uv_protocol"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 	"uv_server/internal/uv_server/presentation/job"
-	"uv_server/internal/uv_server/presentation/messages"
 )
 
 type JobBuilder struct {
@@ -30,7 +30,7 @@ func NewJobBuilder(config *config.Config, db *sql.DB) *JobBuilder {
 }
 
 func (b *JobBuilder) CreateJob(
-	message *messages.Message,
+	message *uv_protocol.Message,
 	session_in chan<- *job.Message,
 ) (*job.Job, error) {
 	typ := message.Header.Type
@@ -44,7 +44,7 @@ func (b *JobBuilder) CreateJob(
 	var wa job.WorkflowAdapter
 
 	switch typ {
-	case messages.DownloadingRequest:
+	case uv_protocol.DownloadingRequest:
 		wa = job.NewDownloadingWfAdapter(
 			uuid,
 			b.config,

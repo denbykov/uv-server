@@ -10,10 +10,10 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 
+	"uv_server/internal/uv_protocol"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 	"uv_server/internal/uv_server/presentation/job"
-	"uv_server/internal/uv_server/presentation/messages"
 )
 
 const (
@@ -94,7 +94,7 @@ func (s *Session) readPump() {
 }
 
 func (s *Session) handleIncommingMessage(raw_msg []byte) {
-	msg, err := messages.ParseMessage(raw_msg)
+	msg, err := uv_protocol.ParseMessage(raw_msg)
 
 	if err != nil {
 		s.log.Error(err)
@@ -109,7 +109,7 @@ func (s *Session) handleIncommingMessage(raw_msg []byte) {
 	if ok {
 		job.Notify(msg)
 	} else {
-		if msg.Header.Type == messages.CancelRequest {
+		if msg.Header.Type == uv_protocol.CancelRequest {
 			s.log.Debugf("received cancel request for non existing job: %v", *msg.Header.Uuid)
 			return
 		}
