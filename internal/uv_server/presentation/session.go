@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net"
 	"sync"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
@@ -18,9 +17,9 @@ import (
 
 const (
 	messageLimit = 5
-	writeWait    = 10 * time.Second
-	pongWait     = 60 * time.Second
-	pingPeriod   = (pongWait * 9) / 10
+	// writeWait    = 10 * time.Second
+	// pongWait     = 60 * time.Second
+	// pingPeriod   = (pongWait * 9) / 10
 )
 
 type Session struct {
@@ -62,25 +61,16 @@ func (s *Session) readPump() {
 		s.conn.Close()
 	}()
 
-	err := s.conn.SetReadDeadline(time.Now().Add(pongWait))
-	if err != nil {
-		s.log.Fatalf("failed to set read dead line: %v", err)
-	}
-
-	s.conn.SetPongHandler(func(string) error {
-		return s.conn.SetReadDeadline(time.Now().Add(pongWait))
-	})
-
 	for {
 		_, message, err := s.conn.ReadMessage()
 		if err != nil {
 			switch err.(type) {
 			case *websocket.CloseError:
-				s.log.Infof("connection from %s is closed", s.peer)
+				s.log.Infof("connection from %s is closed %T: %v", s.peer, err, err)
 				return
 			default:
 				if errors.Is(err, net.ErrClosed) {
-					s.log.Infof("connection from %s is closed", s.peer)
+					s.log.Infof("connection from %s is closed %T: %v", s.peer, err, err)
 					return
 				}
 
@@ -88,12 +78,11 @@ func (s *Session) readPump() {
 				return
 			}
 		}
-
-		go s.handleIncommingMessage(message)
+		go s.handleIncomingMessage(message)
 	}
 }
 
-func (s *Session) handleIncommingMessage(raw_msg []byte) {
+func (s *Session) handleIncomingMessage(raw_msg []byte) {
 	msg, err := uv_protocol.ParseMessage(raw_msg)
 
 	if err != nil {
@@ -132,63 +121,41 @@ func (s *Session) handleIncommingMessage(raw_msg []byte) {
 }
 
 func (s *Session) writePump() {
-	ticker := time.NewTicker(pingPeriod)
 	defer func() {
-		ticker.Stop()
 		s.conn.Close()
 	}()
 
-	for {
-		select {
-		case j_message, ok := <-s.job_out:
+	for j_message := range s.job_out {
+		if j_message.Done {
+			s.jobs_mx.Lock()
+			s.log.Tracef("removing job: %v", *j_message.Msg.Header.Uuid)
+
+			_, ok := s.jobs[*j_message.Msg.Header.Uuid]
 			if !ok {
-				err := s.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				if err != nil {
-					s.log.Errorf("failed to write message: %v", err)
-				}
-				return
+				s.log.Fatalf(
+					"trying to remove non-existing job: %v",
+					*j_message.Msg.Header.Uuid)
 			}
+			delete(s.jobs, *j_message.Msg.Header.Uuid)
 
-			if j_message.Done {
-				s.jobs_mx.Lock()
-				s.log.Tracef("removing job: %v", *j_message.Msg.Header.Uuid)
+			s.jobs_mx.Unlock()
+		}
 
-				_, ok := s.jobs[*j_message.Msg.Header.Uuid]
-				if !ok {
-					s.log.Fatalf(
-						"trying to remove non-existing job: %v",
-						*j_message.Msg.Header.Uuid)
-				}
-				delete(s.jobs, *j_message.Msg.Header.Uuid)
+		w, err := s.conn.NextWriter(websocket.BinaryMessage)
+		if err != nil {
+			s.log.Fatal(err)
+		}
 
-				s.jobs_mx.Unlock()
-			}
+		message := j_message.Msg
+		data := message.Serialize()
 
-			w, err := s.conn.NextWriter(websocket.BinaryMessage)
-			if err != nil {
-				s.log.Fatal(err)
-			}
+		_, err = w.Write(data)
+		if err != nil {
+			s.log.Errorf("failed to write message: %v", err)
+		}
 
-			message := j_message.Msg
-			data := message.Serialize()
-
-			_, err = w.Write(data)
-			if err != nil {
-				s.log.Errorf("failed to write message: %v", err)
-			}
-
-			if err := w.Close(); err != nil {
-				return
-			}
-		case <-ticker.C:
-			err := s.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err != nil {
-				s.log.Fatalf("failed to set write dead line: %v", err)
-			}
-
-			if err := s.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
-			}
+		if err := w.Close(); err != nil {
+			return
 		}
 	}
 }
