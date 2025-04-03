@@ -42,11 +42,11 @@ func (t Type) String() string {
 }
 
 func GetTypes() []string {
-	var names []string
+	var types []string
 	for t := DownloadingRequest; t < Max; t++ {
-		names = append(names, t.String())
+		types = append(types, t.String())
 	}
-	return names
+	return types
 }
 
 func GetType(name string) (Type, error) {
@@ -60,10 +60,7 @@ func GetType(name string) (Type, error) {
 }
 
 func GetTypeHint() string {
-	var validTypes []string
-	for _, item := range GetTypes() {
-		validTypes = append(validTypes, string(item))
-	}
+	validTypes := GetTypes()
 	return strings.Join(validTypes, ", ")
 }
 
@@ -135,15 +132,10 @@ func (m *Message) Serialize() []byte {
 	return result
 }
 
-func ValidType(type_flag string) (bool, error) {
-
-	allowedTypes := []string{}
-	allowedTypes = append(allowedTypes, GetTypes()...)
-	ok := slices.Contains(allowedTypes, type_flag)
-	if !ok {
-		var validTypes []string
-		validTypes = append(validTypes, allowedTypes...)
-		return false, errors.New("Invalid type. Allowed values: " + strings.Join(validTypes, ", "))
+func ValidType(name string) (bool, error) {
+	types := GetTypes()
+	if slices.Contains(types, name) {
+		return true, nil
 	}
-	return true, nil
+	return false, errors.New("invalid type \"" + name + "\". Allowed values: " + strings.Join(types, ", "))
 }
