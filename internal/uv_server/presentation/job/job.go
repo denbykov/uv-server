@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 	"uv_server/internal/uv_protocol"
@@ -219,11 +220,11 @@ func (j *Job) canceled(ctx context.Context, wg *sync.WaitGroup) State {
 
 	select {
 	case msg := <-j.wf_out:
-		if tMsg, ok := msg.(cjmessages.Error); ok {
+		if tMsg, ok := msg.(*cjmessages.Error); ok {
 			err_msg := j.buildErrorMessage(tMsg.Reason)
 			j.session_in <- err_msg
 		} else {
-			j.log.Fatalf("Unexpected message: %v", tMsg)
+			j.log.Fatalf("Unexpected workflow message: %v %v", reflect.TypeOf(msg), msg)
 		}
 	default:
 		j.log.Warnf("workflow exited with no user notification")
