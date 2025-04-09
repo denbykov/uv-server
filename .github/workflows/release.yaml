@@ -62,7 +62,7 @@ jobs:
       
       - name: Copy migrations
         run:
-          cp ./db ./server
+          mv ./db ./server
       
       - name: Copy config
         run: |
