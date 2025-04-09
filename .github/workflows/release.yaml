@@ -1,0 +1,46 @@
+name: release
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+  build-and-publish-archive:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '^1.23.4'
+          cache: true
+      
+      - name: Create distribution directory
+        run: mkdir server
+      
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build -v ../cmd/uv_server
+        working-directory: server
+      
+      - name: Prepare ffmpeg
+        run: 
+          Invoke-WebRequest -Uri https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-7.1.zip -OutFile ffmpeg.zip
+          Expand-Archive -Path .\ffmpeg.zip -DestinationPath ./ffmpeg
+          mv ffmpeg/ffmpeg-n7.1-latest-win64-gpl-7.1 .
+          rm ffmpeg-n7.1-latest-win64-gpl-7.1.zip
+          rm ffmpeg.zip
+          rm ffmpeg
+        working-directory: server
+      
+      # - name: Create release
+      #   uses: ncipollo/release-action@v1
+      #   with:
+      #     allowUpdates: true
+      #     artifacts: ""

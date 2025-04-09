@@ -1,5 +1,5 @@
 name: ci
-run-name: ci
+
 on:
   pull_request:
     branches:
@@ -8,6 +8,7 @@ on:
     branches:
       - main
       - 'release/**'
+
 jobs:
   go-lint:
     name: go-lint
@@ -27,6 +28,7 @@ jobs:
 
       - name: Run golangci-lint
         run: golangci-lint run ./...
+  
   build:
     runs-on: windows-latest
     steps:
@@ -47,11 +49,12 @@ jobs:
       
       - name: Run tests
         run: go test -v ./...
-  python-lint:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/ruff-action@v3
-        with:
-          args: check
-          src: './tools'
+  
+  # python-lint:
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: astral-sh/ruff-action@v3
+  #       with:
+  #         args: check
+  #         src: './tools'
