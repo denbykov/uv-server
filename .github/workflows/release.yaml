@@ -56,9 +56,13 @@ jobs:
       - name: Add downloader to distribution
         run: |
           cp ./tools/downloaders/youtube/dist/downloader.exe ./server/tools
+
+      - name: Package distribution
+        run: |
+          Compress-Archive -LiteralPath .\downloader -DestinationPath downloader.zip
       
-      # - name: Create release
-      #   uses: ncipollo/release-action@v1
-      #   with:
-      #     allowUpdates: true
-      #     artifacts: ""
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: "downloader.zip"
