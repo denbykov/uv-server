@@ -44,6 +44,9 @@ jobs:
       
       - name: Build
         run: go build -v ./cmd/...
+      
+      - name: Run tests
+        run: go test -v ./...
   # python-lint:
   #   runs-on: windows-latest
   #   steps:
@@ -51,4 +54,4 @@ jobs:
   #     - uses: astral-sh/ruff-action@v3
   #       with:
   #         args: check
-  #         src: './scripts'
+  #         src: './tools'
