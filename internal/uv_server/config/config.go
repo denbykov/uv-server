@@ -15,7 +15,7 @@ type Config struct {
 	Port           int16  `yaml:"port"`
 	FfmpegLocation string `yaml:"ffmpegLocation"`
 
-	ScriptsLocation string
+	ToolsLocation string
 
 	ChangesetsLocation string `yaml:"changesetsLocation"`
 }
@@ -36,23 +36,23 @@ func (config *Config) parse(path string) {
 }
 
 func (config *Config) validateSriptsLocation() {
-	if config.ScriptsLocation == "" {
+	if config.ToolsLocation == "" {
 		config.log.Fatal(
 			"scripts location is not specified")
 	}
 
-	stat, err := os.Stat(config.ScriptsLocation)
+	stat, err := os.Stat(config.ToolsLocation)
 
 	if os.IsNotExist(err) {
 		config.log.Fatalf(
 			"scripts location does not exist: '%v'",
-			config.ScriptsLocation)
+			config.ToolsLocation)
 	}
 
 	if !stat.IsDir() {
 		config.log.Fatalf(
 			"scripts location is not a directory: '%v'",
-			config.ScriptsLocation)
+			config.ToolsLocation)
 	}
 }
 
@@ -89,7 +89,7 @@ func NewConfig(path string) *Config {
 
 	config.validateFfmpegLocation()
 
-	config.ScriptsLocation = "scripts"
+	config.ToolsLocation = "tools"
 	config.validateSriptsLocation()
 
 	return config

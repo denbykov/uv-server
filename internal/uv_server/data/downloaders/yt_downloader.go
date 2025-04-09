@@ -256,7 +256,7 @@ func (d *YtDownloader) cleanUp(
 }
 
 func (d *YtDownloader) startProcess(wd string, url string, dir string) (*exec.Cmd, io.ReadCloser, error) {
-	executable := path.Join(wd, d.config.ScriptsLocation, "downloader")
+	executable := path.Join(wd, d.config.ToolsLocation, "downloader")
 
 	process := exec.Command(
 		executable,

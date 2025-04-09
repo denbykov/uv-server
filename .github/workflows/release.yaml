@@ -38,6 +38,25 @@ jobs:
           rm ffmpeg
         working-directory: server
       
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+        python-version: '3.13'
+      
+      - name: Create tools directory
+        run: mkdir server/tools
+
+      - name: Build downloader
+        run: |
+          python -m venv myenv 
+          .\venv\Scripts\Activate.ps1; pip install -r requirements.txt
+          .\venv\Scripts\Activate.ps1; pyinstaller --onefile .\downloader.py
+        working-directory: tools/downloaders/youtube
+      
+      - name: Add downloader to distribution
+        run: |
+          cp ./tools/downloaders/youtube/dist/downloader.exe ./server/tools
+      
       # - name: Create release
       #   uses: ncipollo/release-action@v1
       #   with:
