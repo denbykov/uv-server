@@ -398,7 +398,8 @@ func TestRun_DownloadingFailed(t *testing.T) {
 	jobIn := make(chan interface{}, 1)
 	downloaderOut := make(chan interface{}, 1)
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	wf := newDownloadingWf()
 	wf.jobIn = jobIn
