@@ -28,8 +28,12 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Build
+      - name: Build server
         run: go build -v ../cmd/uv_server
+        working-directory: server
+      
+      - name: Build launcher
+        run: go build -v ../cmd/launcher
         working-directory: server
       
       - name: Prepare ffmpeg
@@ -77,4 +81,6 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifacts: "server.zip"
+          artifacts: |
+            "server.zip"
+            "launcher.exe"
