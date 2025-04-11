@@ -9,3 +9,6 @@
 **.editorconfig
 **.js
 **.zip
+**/cmd/launcher/client
+**/cmd/launcher/server
+**/cmd/launcher/version
