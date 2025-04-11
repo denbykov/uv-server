@@ -8,19 +8,70 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 )
 
 func main() {
-	fmt.Println("starting...")
-
 	err := updateIfNeeded()
 	if err != nil {
 		fmt.Printf("error: %v", err)
 		return
 	}
+
+	err = start()
+	if err != nil {
+		fmt.Printf("error: %v", err)
+		return
+	}
+}
+
+func start() error {
+	fmt.Println("starting...")
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	err = startServer(wd)
+	if err != nil {
+		return err
+	}
+
+	err = startClient(wd)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func startServer(wd string) error {
+	path := path.Join(wd, "server", "uv_server")
+	cmd := exec.Command(path)
+	cmd.Dir = "server"
+	err := cmd.Start()
+	if err != nil {
+		return fmt.Errorf("failed to run server: %v", err)
+	}
+
+	return nil
+}
+
+func startClient(wd string) error {
+	path := path.Join(wd, "client", "uv-client")
+	cmd := exec.Command(path)
+	cmd.Dir = "client"
+	err := cmd.Start()
+	if err != nil {
+		return fmt.Errorf("failed to run client: %v", err)
+	}
+
+	return nil
 }
 
 func updateIfNeeded() error {
@@ -173,7 +224,7 @@ func installServer(tag string) error {
 		return err
 	}
 
-	err = unzipSource("server.zip", "server")
+	err = unzipSource("server.zip", ".")
 	if err != nil {
 		return err
 	}
@@ -189,7 +240,7 @@ func installClient(tag string) error {
 		return err
 	}
 
-	err = unzipSource("client.zip", "client")
+	err = unzipSource("client.zip", ".")
 	if err != nil {
 		return err
 	}

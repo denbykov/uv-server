@@ -22,6 +22,7 @@ type Server struct {
 	config     *config.Config
 	jobBuilder *JobBuilder
 	sessions   []*Session
+	srv        *http.Server
 
 	db *sql.DB
 }
@@ -40,10 +41,12 @@ func NewServer(config *config.Config, db *sql.DB) *Server {
 func (s *Server) Run() error {
 	http.HandleFunc("/ws", s.handleConnection)
 
-	port := fmt.Sprintf(":%v", s.config.Port)
+	addr := fmt.Sprintf(":%v", s.config.Port)
+	s.srv = &http.Server{Addr: addr}
 
-	s.log.Infof("websocket server started on %s", port)
-	return http.ListenAndServe(port, nil)
+	s.log.Infof("websocket server started on %s", addr)
+
+	return s.srv.ListenAndServe()
 }
 
 func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +60,7 @@ func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
 
 	// Could add session removal later, but as I'm expecting to have
 	// only one client at the moment so I do not really care
-	session := NewSession(s.config, ws, r.RemoteAddr, s.jobBuilder, s.db)
+	session := NewSession(s.config, ws, r.RemoteAddr, s.jobBuilder, s.db, s.srv)
 	s.sessions = append(s.sessions, session)
 	session.Run()
 }

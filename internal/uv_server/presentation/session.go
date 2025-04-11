@@ -1,9 +1,11 @@
 package presentation
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"net"
+	"net/http"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -28,6 +30,7 @@ type Session struct {
 	conn    *websocket.Conn
 	peer    string
 	builder *JobBuilder
+	srv     *http.Server
 
 	job_out chan *job.Message
 
@@ -40,7 +43,8 @@ func NewSession(
 	conn *websocket.Conn,
 	peer string,
 	builder *JobBuilder,
-	db *sql.DB) *Session {
+	db *sql.DB,
+	srv *http.Server) *Session {
 	object := &Session{}
 
 	object.log = loggers.PresentationLogger
@@ -52,6 +56,8 @@ func NewSession(
 
 	object.jobs_mx = sync.Mutex{}
 	object.jobs = make(map[string]*job.Job)
+
+	object.srv = srv
 
 	return object
 }
@@ -67,10 +73,12 @@ func (s *Session) readPump() {
 			switch err.(type) {
 			case *websocket.CloseError:
 				s.log.Infof("connection from %s is closed %T: %v", s.peer, err, err)
+				s.srv.Shutdown(context.TODO())
 				return
 			default:
 				if errors.Is(err, net.ErrClosed) {
 					s.log.Infof("connection from %s is closed %T: %v", s.peer, err, err)
+					s.srv.Shutdown(context.TODO())
 					return
 				}
 
