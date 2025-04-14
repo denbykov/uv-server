@@ -42,10 +42,6 @@ jobs:
           mv ffmpeg/ffmpeg-n7.1.1-6-g48c0f071d4-win64-gpl-shared-7.1 .
           rm ffmpeg.zip
           rm ffmpeg
-          rm ffmpeg-n7.1.1-6-g48c0f071d4-win64-gpl-shared-7.1/doc
-          rm ffmpeg-n7.1.1-6-g48c0f071d4-win64-gpl-shared-7.1/include
-          rm ffmpeg-n7.1.1-6-g48c0f071d4-win64-gpl-shared-7.1/lib
-          rm ffmpeg-n7.1.1-6-g48c0f071d4-win64-gpl-shared-7.1/bin/ffplay.exe
         working-directory: server
       
       - name: Set up Python
