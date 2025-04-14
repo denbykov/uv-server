@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"errors"
 	"os"
 
 	"uv_server/internal/uv_server/common/loggers"
@@ -17,17 +18,23 @@ func Run() {
 	bootstrapLogger.Info("initializing project directories")
 	storagePath := "storage"
 	tmpPath := "tmp"
-	createDirIfNotExists(storagePath)
-	createDirIfNotExists(tmpPath)
+	bootstrapLogger.Info("initializing project directories")
+	if err := initProjectDirectories(storagePath, tmpPath); err != nil {
+		bootstrapLogger.Panic(err, "failed to initialize project directories")
+	}
 	bootstrapLogger.Info("cleaning tmp directory")
-	сleanDirectory(tmpPath)
+	if err := сleanDirectory(tmpPath); err != nil {
+		bootstrapLogger.Panic(err, "failed to clean tmp directory")
+	}
 }
 
-func InitProjectDirectories() error {
-	storagePath := "storage"
-	tmpPath := "tmp"
-	createDirIfNotExists(storagePath)
-	createDirIfNotExists(tmpPath)
+func initProjectDirectories(storagePath, tmpPath string) error {
+	if err := createDirIfNotExists(storagePath); err != nil {
+		return err
+	}
+	if err := createDirIfNotExists(tmpPath); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -35,7 +42,7 @@ func createDirIfNotExists(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		err := os.Mkdir(path, 0755)
 		if err != nil {
-			bootstrapLogger.Panic(err, "failed to create "+path+"directory")
+			return errors.New("failed to create " + path + " directory")
 		}
 	}
 	return nil
