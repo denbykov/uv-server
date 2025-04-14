@@ -73,18 +73,26 @@ func (s *Session) readPump() {
 			switch err.(type) {
 			case *websocket.CloseError:
 				s.log.Infof("connection from %s is closed %T: %v", s.peer, err, err)
-				err = s.srv.Shutdown(context.TODO())
-				if err != nil {
-					s.log.Fatalf("failed to shut server down gracefully: %v", err)
-				}
-				return
-			default:
-				if errors.Is(err, net.ErrClosed) {
-					s.log.Infof("connection from %s is closed %T: %v", s.peer, err, err)
+
+				if !s.config.AllowClientReconnect {
 					err = s.srv.Shutdown(context.TODO())
 					if err != nil {
 						s.log.Fatalf("failed to shut server down gracefully: %v", err)
 					}
+				}
+
+				return
+			default:
+				if errors.Is(err, net.ErrClosed) {
+					s.log.Infof("connection from %s is closed %T: %v", s.peer, err, err)
+
+					if !s.config.AllowClientReconnect {
+						err = s.srv.Shutdown(context.TODO())
+						if err != nil {
+							s.log.Fatalf("failed to shut server down gracefully: %v", err)
+						}
+					}
+
 					return
 				}
 
