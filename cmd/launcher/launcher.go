@@ -286,6 +286,9 @@ func downloadFile(url, destination string) error {
 	}
 
 	_, err = io.Copy(out, reader)
+
+	// extra spaces to remove potential garbage from progess display
+	fmt.Printf("donwloading done             ")
 	return err
 }
 
@@ -299,7 +302,7 @@ func (p *ProgressReader) Read(b []byte) (int, error) {
 	n, err := p.Reader.Read(b)
 	p.Count += int64(n)
 	fmt.Printf("Downloading... %d%%", (p.Count*100)/p.Total)
-	fmt.Printf("\r                                        ")
+	fmt.Printf("\r")
 	return n, err
 }
 
