@@ -106,6 +106,26 @@ func (d *YtDownloader) handleDoneMessage(
 	return nil
 }
 
+func (d *YtDownloader) handleFailedMessage(
+	message map[string]interface{},
+) error {
+	d.log.Tracef("Handling failed message: %v", message)
+
+	msg, ok := message["msg"]
+
+	if !ok {
+		return errors.New("failed message does not contain " +
+			"a \"msg\" field")
+	}
+
+	businessMessage := &businessData.Error{
+		Reason: msg.(string),
+	}
+
+	d.child_out <- businessMessage
+	return nil
+}
+
 func copyFile(src, dst string) error {
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
@@ -243,7 +263,7 @@ func (d *YtDownloader) cleanUp(
 	if !gracefulExit {
 		err := process.Process.Kill()
 		if err != nil {
-			d.log.Fatal(err)
+			d.log.Error(err)
 		}
 	}
 
@@ -320,6 +340,17 @@ func (d *YtDownloader) listenToChild(wg *sync.WaitGroup, stdout io.ReadCloser) {
 
 			if err != nil {
 				d.log.Errorf("failed to handle done message: %v, reason: %v",
+					parsedMessage, err)
+
+				d.child_out <- businessData.Error{Reason: "downloading failed"}
+				return
+			}
+			return
+		case DownloadingFailed:
+			err := d.handleFailedMessage(parsedMessage)
+
+			if err != nil {
+				d.log.Errorf("failed to handle error message: %v, reason: %v",
 					parsedMessage, err)
 
 				d.child_out <- businessData.Error{Reason: "downloading failed"}
