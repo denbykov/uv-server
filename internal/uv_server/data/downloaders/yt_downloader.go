@@ -182,8 +182,8 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 		d.log.Fatal(err)
 	}
 
-	storageDir := "."
-	tempDir := path.Join(storageDir, d.uuid)
+	storageDir := path.Join(wd, "storage")
+	tempDir := path.Join(wd, "tmp", d.uuid)
 	d.ensureDirectoryExists(tempDir)
 
 	process, stdout, err := d.startProcess(wd, url, tempDir)
