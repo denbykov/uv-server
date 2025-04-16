@@ -25,9 +25,6 @@ var PresentationLogger *logrus.Entry
 var dataLogger *logrus.Logger
 var DataLogger *logrus.Entry
 
-var bootstrapLogger *logrus.Logger
-var BootstrapLogger *logrus.Entry
-
 type ThreadsafeWriter struct {
 	writers []io.Writer
 	mutex   *sync.Mutex
@@ -90,12 +87,6 @@ func Init(logDirectory string, logFile string) {
 	dataLogger.SetOutput(writer)
 	dataLogger.SetNoLock()
 	DataLogger = dataLogger.WithField("layer", "Data")
-
-	bootstrapLogger = logrus.New()
-	bootstrapLogger.SetLevel(level)
-	bootstrapLogger.SetOutput(writer)
-	bootstrapLogger.SetNoLock()
-	BootstrapLogger = bootstrapLogger.WithField("layer", "Bootstrap")
 }
 
 func CloseLogFile() {

@@ -6,7 +6,6 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"uv_server/internal/bootstrap"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 	"uv_server/internal/uv_server/data"
@@ -21,8 +20,6 @@ func main() {
 
 	log.Info("Starting...")
 
-	bootstrap.Run()
-
 	config := config.NewConfig(filepath.Join("config", "config.yaml"))
 
 	db, err := sql.Open("sqlite3", "app.db")
@@ -35,6 +32,8 @@ func main() {
 		db,
 	)
 	DbMigrator.MigrateIfNeeded()
+
+	data.InitializeAndCleanDirectories()
 
 	server := presentation.NewServer(config, db)
 
