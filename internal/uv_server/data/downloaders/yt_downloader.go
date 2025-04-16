@@ -20,7 +20,6 @@ import (
 	businessData "uv_server/internal/uv_server/business/workflows/downloading/data"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
-	"uv_server/internal/uv_server/data"
 )
 
 type mtype int
@@ -43,7 +42,7 @@ type YtDownloader struct {
 
 	child_out chan interface{}
 
-	cleanTmpDir chan string
+	to_clean chan<- string
 }
 
 func NewYtDownloader(
@@ -51,6 +50,7 @@ func NewYtDownloader(
 	config *config.Config,
 	jobCtx context.Context,
 	wf_out chan<- interface{},
+	to_clean chan<- string,
 ) *YtDownloader {
 	object := &YtDownloader{}
 	object.log = loggers.DataLogger.WithFields(
@@ -65,9 +65,7 @@ func NewYtDownloader(
 	object.jobCtx = jobCtx
 	object.wf_out = wf_out
 	object.child_out = make(chan interface{}, 1)
-	object.cleanTmpDir = make(chan string, 5)
-
-	go object.deleteTmpDirLoop()
+	object.to_clean = to_clean
 
 	return object
 }
@@ -90,27 +88,6 @@ func (d *YtDownloader) handleProgressMessage(
 
 	d.child_out <- businessMessage
 	return nil
-}
-
-func (d *YtDownloader) deleteTmpDirLoop() {
-	for {
-		select {
-		case dirPath := <-d.cleanTmpDir:
-			d.log.Tracef("Delete temporary directory by: %v", dirPath)
-			for range 5 {
-				if err := data.RemoveItem(dirPath); err != nil {
-					d.log.Fatalf("failed to remove file: %v", err)
-				}
-				if _, err := os.Stat(dirPath); err != nil {
-					break
-				}
-			}
-			<-d.cleanTmpDir
-
-		case <-d.jobCtx.Done():
-			d.log.Tracef("Cleaning tmp file loop stopped")
-		}
-	}
 }
 
 func (d *YtDownloader) handleDoneMessage(
@@ -226,7 +203,7 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 		select {
 		case <-d.jobCtx.Done():
 			stdout.Close()
-			d.cleanUp(process, &childWg, false)
+			d.cleanUp(process, &childWg, false, tempDir)
 			return
 		case msg := <-d.child_out:
 			if typedMsg, ok := msg.(*businessData.Progress); ok {
@@ -244,14 +221,12 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 					d.log.Fatalf("Failed to copy file: %v", err)
 				}
 
-				d.cleanTmpDir <- tempDir
-
-				d.cleanUp(process, &childWg, true)
+				d.cleanUp(process, &childWg, true, tempDir)
 				d.wf_out <- typedMsg
 				return
 			} else if typedMsg, ok := msg.(*businessData.Error); ok {
 				d.wf_out <- typedMsg
-				d.cleanUp(process, &childWg, false)
+				d.cleanUp(process, &childWg, false, tempDir)
 				return
 			} else {
 				d.log.Fatalf("Unknown message type: %v", reflect.TypeOf(msg))
@@ -264,6 +239,7 @@ func (d *YtDownloader) cleanUp(
 	process *exec.Cmd,
 	childWg *sync.WaitGroup,
 	gracefulExit bool,
+	tempDir string,
 ) {
 	d.log.WithField("graceful", gracefulExit).Trace("Cleaning up")
 
@@ -280,6 +256,8 @@ func (d *YtDownloader) cleanUp(
 	if err != nil {
 		d.log.Tracef("downlaoder executable exited with: %v", err)
 	}
+
+	d.to_clean <- tempDir
 
 	d.log.Trace("Done cleaning up")
 }

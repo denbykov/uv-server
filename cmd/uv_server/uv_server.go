@@ -33,9 +33,18 @@ func main() {
 	)
 	DbMigrator.MigrateIfNeeded()
 
-	data.InitializeAndCleanDirectories()
+	to_clean := make(chan string, 5)
 
-	server := presentation.NewServer(config, db)
+	cleaner := data.NewFileCleaner(to_clean)
+	cleaner.InitializeAndCleanDirectories()
+	go cleaner.CleanUpLoop()
+
+	resources := data.Resources{
+		Db:       db,
+		To_clean: to_clean,
+	}
+
+	server := presentation.NewServer(config, &resources)
 
 	err = server.Run()
 
