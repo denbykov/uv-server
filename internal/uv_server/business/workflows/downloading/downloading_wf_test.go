@@ -440,7 +440,7 @@ func TestRun_DownloadingFailed(t *testing.T) {
 
 	msg = <-jobIn
 	teMsg := msg.(*cjmessages.Error)
-	assert.Equal(t, teMsg.Reason, "downloading failed")
+	assert.Equal(t, teMsg.Reason, "something went wrong")
 
 	wg.Wait()
 

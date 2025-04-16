@@ -12,12 +12,13 @@ import (
 type Config struct {
 	log *logrus.Entry
 
-	Port           int16  `yaml:"port"`
-	FfmpegLocation string `yaml:"ffmpegLocation"`
+	Port int16 `yaml:"port"`
 
-	ToolsLocation string
-
+	FfmpegLocation     string `yaml:"ffmpegLocation"`
+	ToolsLocation      string
 	ChangesetsLocation string `yaml:"changesetsLocation"`
+
+	AllowClientReconnect bool `yaml:"allowClientReconnect"`
 }
 
 func (config *Config) parse(path string) {

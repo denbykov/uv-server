@@ -1,8 +1,11 @@
 package presentation
 
 import (
+	"context"
+
 	"errors"
 	"net"
+	"net/http"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -27,6 +30,7 @@ type Session struct {
 	conn    *websocket.Conn
 	peer    string
 	builder *JobBuilder
+	srv     *http.Server
 
 	job_out chan *job.Message
 
@@ -39,6 +43,7 @@ func NewSession(
 	conn *websocket.Conn,
 	peer string,
 	builder *JobBuilder,
+	srv *http.Server,
 ) *Session {
 	object := &Session{}
 
@@ -51,6 +56,8 @@ func NewSession(
 
 	object.jobs_mx = sync.Mutex{}
 	object.jobs = make(map[string]*job.Job)
+
+	object.srv = srv
 
 	return object
 }
@@ -66,10 +73,26 @@ func (s *Session) readPump() {
 			switch err.(type) {
 			case *websocket.CloseError:
 				s.log.Infof("connection from %s is closed %T: %v", s.peer, err, err)
+
+				if !s.config.AllowClientReconnect {
+					err = s.srv.Shutdown(context.TODO())
+					if err != nil {
+						s.log.Fatalf("failed to shut server down gracefully: %v", err)
+					}
+				}
+
 				return
 			default:
 				if errors.Is(err, net.ErrClosed) {
 					s.log.Infof("connection from %s is closed %T: %v", s.peer, err, err)
+
+					if !s.config.AllowClientReconnect {
+						err = s.srv.Shutdown(context.TODO())
+						if err != nil {
+							s.log.Fatalf("failed to shut server down gracefully: %v", err)
+						}
+					}
+
 					return
 				}
 

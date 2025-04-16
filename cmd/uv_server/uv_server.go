@@ -18,7 +18,7 @@ func main() {
 
 	log := loggers.ApplicationLogger
 
-	log.Info("Starting...")
+	log.Info("starting...")
 
 	config := config.NewConfig(filepath.Join("config", "config.yaml"))
 

@@ -28,15 +28,18 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Build
+      - name: Build server
         run: go build -v ../cmd/uv_server
         working-directory: server
       
+      - name: Build launcher
+        run: go build -v ./cmd/launcher
+      
       - name: Prepare ffmpeg
         run: |
-          Invoke-WebRequest -Uri https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-gpl-7.1.zip -OutFile ffmpeg.zip
+          Invoke-WebRequest -Uri https://github.com/yt-dlp/FFmpeg-Builds/releases/download/autobuild-2025-04-13-14-13/ffmpeg-n7.1.1-6-g48c0f071d4-win64-gpl-shared-7.1.zip -OutFile ffmpeg.zip
           Expand-Archive -Path .\ffmpeg.zip -DestinationPath ./ffmpeg
-          mv ffmpeg/ffmpeg-n7.1-latest-win64-gpl-7.1 .
+          mv ffmpeg/ffmpeg-n7.1.1-6-g48c0f071d4-win64-gpl-shared-7.1 .
           rm ffmpeg.zip
           rm ffmpeg
         working-directory: server
@@ -77,4 +80,4 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifacts: "server.zip"
+          artifacts: "server.zip,launcher.exe"
