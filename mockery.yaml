@@ -1,0 +1,6 @@
+dir: '{{.InterfaceDir}}/mocks'
+outpkg: 'mocks'
+packages:
+    uv_server/internal/uv_server/business/data:
+        interfaces:
+            Database:

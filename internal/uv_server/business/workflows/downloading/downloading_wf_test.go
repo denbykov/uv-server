@@ -125,7 +125,7 @@ func TestNormalizeUrl(t *testing.T) {
 
 func TestStartDownloading_AlreadyDownloaded(t *testing.T) {
 	downloaderMock := new(StartDownloadingFromYoutubeMock)
-	dbMock := dmocks.NewDatabase(t)
+	dbMock := dmocks.NewMockDatabase(t)
 
 	wf := newDownloadingWf()
 	wf.startDownloadingFromYoutube = func(
@@ -149,7 +149,7 @@ func TestStartDownloading_AlreadyDownloaded(t *testing.T) {
 
 func TestStartDownloading_HappyPass(t *testing.T) {
 	downloaderMock := new(StartDownloadingFromYoutubeMock)
-	dbMock := dmocks.NewDatabase(t)
+	dbMock := dmocks.NewMockDatabase(t)
 
 	wf := newDownloadingWf()
 	wf.startDownloadingFromYoutube = func(
@@ -247,7 +247,7 @@ func TestRun_StartDownloadingFailed(t *testing.T) {
 
 func TestRun_ContextCancelled(t *testing.T) {
 	downloaderMock := new(StartDownloadingMock)
-	dbMock := dmocks.NewDatabase(t)
+	dbMock := dmocks.NewMockDatabase(t)
 
 	jobIn := make(chan interface{}, 1)
 	downloaderOut := make(chan interface{}, 1)
@@ -306,7 +306,7 @@ func TestRun_ContextCancelled(t *testing.T) {
 
 func TestRun_HappyPass(t *testing.T) {
 	downloaderMock := new(StartDownloadingMock)
-	dbMock := dmocks.NewDatabase(t)
+	dbMock := dmocks.NewMockDatabase(t)
 
 	jobIn := make(chan interface{}, 1)
 	downloaderOut := make(chan interface{}, 1)
@@ -394,7 +394,7 @@ func TestRun_HappyPass(t *testing.T) {
 
 func TestRun_DownloadingFailed(t *testing.T) {
 	downloaderMock := new(StartDownloadingMock)
-	dbMock := dmocks.NewDatabase(t)
+	dbMock := dmocks.NewMockDatabase(t)
 
 	jobIn := make(chan interface{}, 1)
 	downloaderOut := make(chan interface{}, 1)

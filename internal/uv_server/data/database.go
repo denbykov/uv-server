@@ -3,11 +3,14 @@ package data
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 	"uv_server/internal/uv_server/business/data"
 	"uv_server/internal/uv_server/common/loggers"
 
 	"github.com/sirupsen/logrus"
+
+	gfw "uv_server/internal/uv_server/business/workflows/get_files/job_messages"
 )
 
 type Database struct {
@@ -179,4 +182,70 @@ func (d *Database) DeleteFile(file *data.File) error {
 	}
 
 	return nil
+}
+
+func (d *Database) GetFilesForGFW(request *gfw.Request) (*gfw.Result, error) {
+	result := &gfw.Result{}
+
+	statement :=
+		`
+		SELECT 
+			COUNT (*) 
+		FROM files
+		`
+
+	d.log.Debugf("executing statement: %v", statement)
+	startedAt := time.Now()
+
+	err := d.db.QueryRow(statement).Scan(
+		&result.Total,
+	)
+
+	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		d.log.Errorf("failed to get file count: %v", err)
+		return result, fmt.Errorf("failed to get files")
+	}
+
+	statement = fmt.Sprintf(
+		`
+		SELECT 
+			f.id,
+			f.source,
+			f.status,
+			f.added_at
+		FROM files as f
+		LIMIT %v
+		OFFSET %v
+		`,
+		request.Limit,
+		request.Offset,
+	)
+
+	d.log.Debugf("executing statement: %v", statement)
+	startedAt = time.Now()
+
+	rows, err := d.db.Query(statement)
+
+	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		d.log.Errorf("failed to get files: %v", err)
+		return result, fmt.Errorf("failed to get files")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var file gfw.File
+
+		err = rows.Scan(&file.Id, &file.Source, &file.Status, &file.AddedAt)
+		if err != nil {
+			d.log.Errorf("failed to scan files: %v", err)
+			return result, fmt.Errorf("failed to get files")
+		}
+		result.Files = append(result.Files, file)
+	}
+
+	return result, nil
 }

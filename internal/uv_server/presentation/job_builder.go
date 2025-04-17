@@ -33,9 +33,9 @@ func (b *JobBuilder) CreateJob(
 	message *uv_protocol.Message,
 	session_in chan<- *job.Message,
 ) (*job.Job, error) {
-	typ := message.Header.Type
+	type_ := message.Header.Type
 
-	b.log.Debugf("Creating Job for message type %v", typ)
+	b.log.Debugf("Creating Job for message type %v", type_)
 
 	var j *job.Job = nil
 
@@ -43,7 +43,7 @@ func (b *JobBuilder) CreateJob(
 
 	var wa job.WorkflowAdapter
 
-	switch typ {
+	switch type_ {
 	case uv_protocol.DownloadingRequest:
 		wa = job.NewDownloadingWfAdapter(
 			uuid,
@@ -51,8 +51,15 @@ func (b *JobBuilder) CreateJob(
 			session_in,
 			b.resources,
 		)
+	case uv_protocol.GetFilesRequest:
+		wa = job.NewGetFilesWfAdapter(
+			uuid,
+			b.config,
+			session_in,
+			b.resources,
+		)
 	default:
-		return j, fmt.Errorf("unable to create job for message type %v", typ)
+		return j, fmt.Errorf("unable to create job for message type %v", type_)
 	}
 
 	job := job.NewJob(
