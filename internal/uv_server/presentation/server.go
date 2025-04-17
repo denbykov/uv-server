@@ -1,7 +1,6 @@
 package presentation
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
+	"uv_server/internal/uv_server/data"
 )
 
 var upgrader = websocket.Upgrader{
@@ -22,17 +22,16 @@ type Server struct {
 	config     *config.Config
 	jobBuilder *JobBuilder
 	sessions   []*Session
-	srv        *http.Server
 
-	db *sql.DB
+	srv *http.Server
 }
 
-func NewServer(config *config.Config, db *sql.DB) *Server {
+func NewServer(config *config.Config, resources *data.Resources) *Server {
 	object := &Server{}
 
 	object.log = loggers.PresentationLogger
 	object.config = config
-	object.jobBuilder = NewJobBuilder(config, db)
+	object.jobBuilder = NewJobBuilder(config, resources)
 	object.sessions = make([]*Session, 0)
 
 	return object
@@ -60,7 +59,9 @@ func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
 
 	// Could add session removal later, but as I'm expecting to have
 	// only one client at the moment so I do not really care
-	session := NewSession(s.config, ws, r.RemoteAddr, s.jobBuilder, s.db, s.srv)
+
+	session := NewSession(s.config, ws, r.RemoteAddr, s.jobBuilder, s.srv)
+
 	s.sessions = append(s.sessions, session)
 	session.Run()
 }

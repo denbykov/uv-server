@@ -2,7 +2,6 @@ package job
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -30,14 +29,14 @@ type DownloadingWfAdapter struct {
 
 	downloaderOut chan interface{}
 
-	db *sql.DB
+	resources *data.Resources
 }
 
 func NewDownloadingWfAdapter(
 	uuid string,
 	config *config.Config,
 	session_in chan<- *Message,
-	db *sql.DB,
+	resources *data.Resources,
 ) *DownloadingWfAdapter {
 	object := &DownloadingWfAdapter{}
 
@@ -49,7 +48,7 @@ func NewDownloadingWfAdapter(
 	object.config = config
 	object.session_in = session_in
 
-	object.db = db
+	object.resources = resources
 
 	return object
 }
@@ -68,6 +67,7 @@ func (wa *DownloadingWfAdapter) CreateWf(
 		config,
 		ctx,
 		wa.downloaderOut,
+		wa.resources.To_clean,
 	)
 
 	wa.wf = downloading.NewDownloadingWf(
@@ -78,7 +78,7 @@ func (wa *DownloadingWfAdapter) CreateWf(
 		wf_in,
 		downloader,
 		wa.downloaderOut,
-		data.NewDatabase(wa.db),
+		data.NewDatabase(wa.resources.Db),
 	)
 }
 

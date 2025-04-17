@@ -2,7 +2,7 @@ package presentation
 
 import (
 	"context"
-	"database/sql"
+
 	"errors"
 	"net"
 	"net/http"
@@ -43,8 +43,8 @@ func NewSession(
 	conn *websocket.Conn,
 	peer string,
 	builder *JobBuilder,
-	db *sql.DB,
-	srv *http.Server) *Session {
+	srv *http.Server,
+) *Session {
 	object := &Session{}
 
 	object.log = loggers.PresentationLogger

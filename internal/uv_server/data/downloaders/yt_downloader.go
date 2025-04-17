@@ -41,6 +41,8 @@ type YtDownloader struct {
 	wf_out chan<- interface{}
 
 	child_out chan interface{}
+
+	to_clean chan<- string
 }
 
 func NewYtDownloader(
@@ -48,6 +50,7 @@ func NewYtDownloader(
 	config *config.Config,
 	jobCtx context.Context,
 	wf_out chan<- interface{},
+	to_clean chan<- string,
 ) *YtDownloader {
 	object := &YtDownloader{}
 	object.log = loggers.DataLogger.WithFields(
@@ -62,6 +65,7 @@ func NewYtDownloader(
 	object.jobCtx = jobCtx
 	object.wf_out = wf_out
 	object.child_out = make(chan interface{}, 1)
+	object.to_clean = to_clean
 
 	return object
 }
@@ -202,8 +206,8 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 		d.log.Fatal(err)
 	}
 
-	storageDir := "."
-	tempDir := path.Join(storageDir, d.uuid)
+	storageDir := path.Join(wd, "storage")
+	tempDir := path.Join(wd, "tmp", d.uuid)
 	d.ensureDirectoryExists(tempDir)
 
 	process, stdout, err := d.startProcess(wd, url, tempDir)
@@ -219,7 +223,7 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 		select {
 		case <-d.jobCtx.Done():
 			stdout.Close()
-			d.cleanUp(process, &childWg, false)
+			d.cleanUp(process, &childWg, false, tempDir)
 			return
 		case msg := <-d.child_out:
 			if typedMsg, ok := msg.(*businessData.Progress); ok {
@@ -237,12 +241,12 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 					d.log.Fatalf("Failed to copy file: %v", err)
 				}
 
-				d.cleanUp(process, &childWg, true)
+				d.cleanUp(process, &childWg, true, tempDir)
 				d.wf_out <- typedMsg
 				return
 			} else if typedMsg, ok := msg.(*businessData.Error); ok {
 				d.wf_out <- typedMsg
-				d.cleanUp(process, &childWg, false)
+				d.cleanUp(process, &childWg, false, tempDir)
 				return
 			} else {
 				d.log.Fatalf("Unknown message type: %v", reflect.TypeOf(msg))
@@ -255,6 +259,7 @@ func (d *YtDownloader) cleanUp(
 	process *exec.Cmd,
 	childWg *sync.WaitGroup,
 	gracefulExit bool,
+	tempDir string,
 ) {
 	d.log.WithField("graceful", gracefulExit).Trace("Cleaning up")
 
@@ -271,6 +276,8 @@ func (d *YtDownloader) cleanUp(
 	if err != nil {
 		d.log.Tracef("downlaoder executable exited with: %v", err)
 	}
+
+	d.to_clean <- tempDir
 
 	d.log.Trace("Done cleaning up")
 }
@@ -345,6 +352,7 @@ func (d *YtDownloader) listenToChild(wg *sync.WaitGroup, stdout io.ReadCloser) {
 				d.child_out <- businessData.Error{Reason: "downloading failed"}
 				return
 			}
+
 			return
 		case DownloadingFailed:
 			err := d.handleFailedMessage(parsedMessage)
