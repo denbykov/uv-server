@@ -77,13 +77,29 @@ func (wa *GetFilesWfAdapter) RunWf(
 
 	request := &jobmessages.Request{}
 	err := common.UnmarshalStrict(msg.Payload, request)
-
 	if err != nil {
 		return fmt.Errorf("failed to parse payload: %v", err)
 	}
 
+	err = wa.validateRequest(request)
+	if err != nil {
+		return fmt.Errorf("request validation failed: %v", err)
+	}
+
 	wg.Add(1)
 	go wa.wf.Run(wg, request)
+
+	return nil
+}
+
+func (wa *GetFilesWfAdapter) validateRequest(request *jobmessages.Request) error {
+	if request.Limit == nil {
+		return fmt.Errorf("missing \"limit\" field")
+	}
+
+	if request.Offset == nil {
+		return fmt.Errorf("missing \"offset\" field")
+	}
 
 	return nil
 }

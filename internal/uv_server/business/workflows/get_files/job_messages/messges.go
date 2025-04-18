@@ -3,8 +3,8 @@ package jobmessages
 import "time"
 
 type Request struct {
-	Limit  int `json:"limit"`
-	Offset int `json:"offset"`
+	Limit  *int `json:"limit"`
+	Offset *int `json:"offset"`
 }
 
 type File struct {

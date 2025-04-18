@@ -12,9 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-Todo:	Upgrade db interactions, to use context!
-		Test for broken requests!
-
 type GetFilesWf struct {
 	uuid string
 
