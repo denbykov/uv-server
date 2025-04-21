@@ -2,6 +2,7 @@ package presentation
 
 import (
 	"context"
+	"time"
 
 	"errors"
 	"net"
@@ -171,6 +172,7 @@ func (s *Session) writePump() {
 		message := j_message.Msg
 		data := message.Serialize()
 
+		s.conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
 		_, err = w.Write(data)
 		if err != nil {
 			s.log.Errorf("failed to write message: %v", err)

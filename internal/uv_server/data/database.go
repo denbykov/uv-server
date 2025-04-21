@@ -219,8 +219,8 @@ func (d *Database) GetFilesForGFW(request *gfw.Request) (*gfw.Result, error) {
 		LIMIT %v
 		OFFSET %v
 		`,
-		request.Limit,
-		request.Offset,
+		*request.Limit,
+		*request.Offset,
 	)
 
 	d.log.Debugf("executing statement: %v", statement)

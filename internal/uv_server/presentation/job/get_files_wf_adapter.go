@@ -138,5 +138,5 @@ func (wa *GetFilesWfAdapter) HandleWfMessage(
 		wa.log.Fatalf("Unknown message: %v", reflect.TypeOf(msg))
 	}
 
-	return Active, nil
+	return Done, nil
 }
