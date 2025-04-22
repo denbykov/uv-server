@@ -124,6 +124,10 @@ func ParseMessage(data []byte) (*Message, error) {
 
 	_ = offset
 
+	if message.Header.Uuid == nil {
+		return nil, fmt.Errorf("message does not contain UUID in the header")
+	}
+
 	return message, nil
 }
 
