@@ -108,8 +108,10 @@ func (j *Job) Run(m *uv_protocol.Message) {
 	err := j.wf_adatapter.RunWf(&wg, m)
 
 	if err != nil {
+		j.log.Error(err)
 		err_msg := j.buildErrorMessage(err.Error())
 		j.session_in <- err_msg
+		return
 	}
 
 	nextState := Active
