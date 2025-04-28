@@ -203,7 +203,7 @@ func (d *Database) GetFilesForGFW(request *gfw.Request) (*gfw.Result, error) {
 
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		d.log.Errorf("failed to get file count: %v", err)
 		return result, fmt.Errorf("failed to get files")
 	}
@@ -216,6 +216,7 @@ func (d *Database) GetFilesForGFW(request *gfw.Request) (*gfw.Result, error) {
 			f.status,
 			f.added_at
 		FROM files as f
+		ORDER BY f.added_at DESC
 		LIMIT %v
 		OFFSET %v
 		`,
@@ -230,7 +231,7 @@ func (d *Database) GetFilesForGFW(request *gfw.Request) (*gfw.Result, error) {
 
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
-	if err != nil && errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		d.log.Errorf("failed to get files: %v", err)
 		return result, fmt.Errorf("failed to get files")
 	}

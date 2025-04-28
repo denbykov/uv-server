@@ -119,7 +119,7 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 		return
 	}
 
-	w.jobIn <- &jobmessages.Progress{Percentage: 0}
+	w.jobIn <- &jobmessages.Progress{Id: w.fileId, Percentage: 0}
 	lastProgressTs := time.Now()
 
 	for {
