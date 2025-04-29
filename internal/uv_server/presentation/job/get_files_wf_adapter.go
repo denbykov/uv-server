@@ -72,7 +72,7 @@ func (wa *GetFilesWfAdapter) RunWf(
 	msg *uv_protocol.Message,
 ) error {
 	if msg.Header.Type != uv_protocol.GetFilesRequest {
-		wa.log.Fatalf("unextected message type, got %v instead of GetFilesRequest", msg.Header.Type)
+		wa.log.Fatalf("unexpected message type, got %v instead of GetFilesRequest", msg.Header.Type)
 	}
 
 	request := &jobmessages.Request{}
