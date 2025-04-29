@@ -315,7 +315,7 @@ func (d *YtDownloader) listenToChild(wg *sync.WaitGroup, stdout io.ReadCloser) {
 
 		if err != nil && !errors.Is(err, os.ErrClosed) {
 			d.log.Errorf("failed to read message from script: %v", err)
-			d.child_out <- businessData.Error{Reason: "downloading failed"}
+			d.child_out <- &businessData.Error{Reason: "downloading failed"}
 			return
 		}
 
@@ -328,7 +328,7 @@ func (d *YtDownloader) listenToChild(wg *sync.WaitGroup, stdout io.ReadCloser) {
 
 		if err != nil {
 			d.log.Error(err)
-			d.child_out <- businessData.Error{Reason: "downloading failed"}
+			d.child_out <- &businessData.Error{Reason: "downloading failed"}
 			return
 		}
 
@@ -339,7 +339,7 @@ func (d *YtDownloader) listenToChild(wg *sync.WaitGroup, stdout io.ReadCloser) {
 				d.log.Errorf("failed to handle progress message: %v, reason: %v",
 					parsedMessage, err)
 
-				d.child_out <- businessData.Error{Reason: "downloading failed"}
+				d.child_out <- &businessData.Error{Reason: "downloading failed"}
 				return
 			}
 		case DownloadingDone:
@@ -349,7 +349,7 @@ func (d *YtDownloader) listenToChild(wg *sync.WaitGroup, stdout io.ReadCloser) {
 				d.log.Errorf("failed to handle done message: %v, reason: %v",
 					parsedMessage, err)
 
-				d.child_out <- businessData.Error{Reason: "downloading failed"}
+				d.child_out <- &businessData.Error{Reason: "downloading failed"}
 				return
 			}
 
@@ -361,13 +361,13 @@ func (d *YtDownloader) listenToChild(wg *sync.WaitGroup, stdout io.ReadCloser) {
 				d.log.Errorf("failed to handle error message: %v, reason: %v",
 					parsedMessage, err)
 
-				d.child_out <- businessData.Error{Reason: "downloading failed"}
+				d.child_out <- &businessData.Error{Reason: "downloading failed"}
 				return
 			}
 			return
 		default:
 			d.log.Errorf("no message handler for type: %v", err)
-			d.child_out <- businessData.Error{Reason: "downloading failed"}
+			d.child_out <- &businessData.Error{Reason: "downloading failed"}
 			return
 		}
 	}

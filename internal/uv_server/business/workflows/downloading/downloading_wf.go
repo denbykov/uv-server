@@ -147,7 +147,7 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 			if tMsg, ok := msg.(*wfData.Progress); ok {
 				now := time.Now()
 				if now.Sub(lastProgressTs).Seconds() > 0 {
-					w.jobIn <- &jobmessages.Progress{Percentage: tMsg.Percentage}
+					w.jobIn <- &jobmessages.Progress{Id: w.fileId, Percentage: tMsg.Percentage}
 					lastProgressTs = now
 				}
 			} else if tMsg, ok := msg.(*wfData.Error); ok {
@@ -179,7 +179,7 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 				}
 
 				downloaderWg.Wait()
-				w.jobIn <- &jobmessages.Progress{Percentage: 100}
+				w.jobIn <- &jobmessages.Progress{Id: w.fileId, Percentage: 100}
 				w.jobIn <- &cjmessages.Done{}
 				return
 			} else {
