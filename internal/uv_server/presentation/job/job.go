@@ -93,10 +93,6 @@ func (j *Job) Notify(m *uv_protocol.Message) {
 func (j *Job) Run(m *uv_protocol.Message) {
 	j.log.Tracef("Run: handling message %v", m)
 
-	if m.Header.Type != uv_protocol.DownloadingRequest {
-		j.log.Fatalf("Run: unextected message type, got %v instead of Download", m.Header.Type)
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -112,8 +108,10 @@ func (j *Job) Run(m *uv_protocol.Message) {
 	err := j.wf_adatapter.RunWf(&wg, m)
 
 	if err != nil {
+		j.log.Error(err)
 		err_msg := j.buildErrorMessage(err.Error())
 		j.session_in <- err_msg
+		return
 	}
 
 	nextState := Active

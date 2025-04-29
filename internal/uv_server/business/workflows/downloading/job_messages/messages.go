@@ -5,5 +5,6 @@ type Request struct {
 }
 
 type Progress struct {
+	Id         int64   `json:"id"`
 	Percentage float64 `json:"percentage"`
 }
