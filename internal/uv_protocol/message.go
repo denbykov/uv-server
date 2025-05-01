@@ -17,6 +17,7 @@ type Type int
 const (
 	DownloadingRequest Type = iota
 	DownloadingProgress
+	DownloadingDone
 
 	CancelRequest
 	Error
@@ -34,6 +35,8 @@ func (t Type) String() string {
 		return "DownloadingRequest"
 	case DownloadingProgress:
 		return "DownloadingProgress"
+	case DownloadingDone:
+		return "DownloadingDone"
 
 	case CancelRequest:
 		return "CancelRequest"

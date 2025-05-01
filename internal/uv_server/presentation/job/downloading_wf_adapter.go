@@ -133,6 +133,24 @@ func (wa *DownloadingWfAdapter) HandleWfMessage(
 		}
 
 		wa.session_in <- msg
+	} else if tMsg, ok := msg.(*jobmessages.Done); ok {
+		payload, err := json.Marshal(tMsg)
+		if err != nil {
+			wa.log.Fatalf("failed to serialize message: %v", err)
+		}
+
+		msg := &Message{
+			Msg: &uv_protocol.Message{
+				Header: &uv_protocol.Header{
+					Uuid: &wa.uuid,
+					Type: uv_protocol.DownloadingDone,
+				},
+				Payload: payload,
+			},
+			Done: true,
+		}
+
+		wa.session_in <- msg
 	} else {
 		wa.log.Fatalf("Unknown message: %v", reflect.TypeOf(msg))
 	}

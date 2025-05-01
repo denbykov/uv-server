@@ -8,3 +8,7 @@ type Progress struct {
 	Id         int64   `json:"id"`
 	Percentage float64 `json:"percentage"`
 }
+
+type Done struct {
+	Id int64 `json:"id"`
+}
