@@ -151,6 +151,8 @@ func (wa *DownloadingWfAdapter) HandleWfMessage(
 		}
 
 		wa.session_in <- msg
+
+		return Done, nil
 	} else {
 		wa.log.Fatalf("Unknown message: %v", reflect.TypeOf(msg))
 	}
