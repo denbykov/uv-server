@@ -10,7 +10,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	gfw "uv_server/internal/uv_server/business/workflows/get_files/job_messages"
+	gfw "uv_server/internal/uv_server/business/workflows/get_file/job_messages"
+	gfsw "uv_server/internal/uv_server/business/workflows/get_files/job_messages"
 )
 
 type Database struct {
@@ -184,8 +185,8 @@ func (d *Database) DeleteFile(file *data.File) error {
 	return nil
 }
 
-func (d *Database) GetFilesForGFW(request *gfw.Request) (*gfw.Result, error) {
-	result := &gfw.Result{}
+func (d *Database) GetFilesForGFW(request *gfsw.Request) (*gfsw.Result, error) {
+	result := &gfsw.Result{}
 
 	statement :=
 		`
@@ -238,7 +239,7 @@ func (d *Database) GetFilesForGFW(request *gfw.Request) (*gfw.Result, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var file gfw.File
+		var file gfsw.File
 
 		err = rows.Scan(&file.Id, &file.Source, &file.Status, &file.AddedAt)
 		if err != nil {
@@ -246,6 +247,48 @@ func (d *Database) GetFilesForGFW(request *gfw.Request) (*gfw.Result, error) {
 			return result, fmt.Errorf("failed to get files")
 		}
 		result.Files = append(result.Files, file)
+	}
+
+	return result, nil
+}
+
+func (d *Database) GetFileForGFW(request *gfw.Request) (*gfw.Result, error) {
+	result := &gfw.Result{}
+
+	statement :=
+		`
+		SELECT 
+			f.id,
+			f."path",
+			f.source_url,
+			f."source",
+			f.status,
+			f.added_at,
+			f.updated_at
+		FROM files as f
+		WHERE
+			id = ?
+		;
+		`
+
+	d.log.Debugf("executing statement: %v", statement)
+	startedAt := time.Now()
+
+	err := d.db.QueryRow(statement, request.Id).Scan(
+		&result.Id,
+		&result.Path,
+		&result.SourceUrl,
+		&result.Source,
+		&result.Status,
+		&result.AddedAt,
+		&result.UpdatedAt,
+	)
+
+	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
+
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		d.log.Errorf("failed to get file: %v", err)
+		return result, fmt.Errorf("failed to get file")
 	}
 
 	return result, nil

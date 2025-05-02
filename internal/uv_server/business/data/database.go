@@ -1,7 +1,8 @@
 package data
 
 import (
-	gfw "uv_server/internal/uv_server/business/workflows/get_files/job_messages"
+	gfw "uv_server/internal/uv_server/business/workflows/get_file/job_messages"
+	gfsw "uv_server/internal/uv_server/business/workflows/get_files/job_messages"
 )
 
 type Database interface {
@@ -11,5 +12,6 @@ type Database interface {
 	UpdateFilePath(file *File) error
 	DeleteFile(file *File) error
 
-	GetFilesForGFW(request *gfw.Request) (*gfw.Result, error)
+	GetFilesForGFW(request *gfsw.Request) (*gfsw.Result, error)
+	GetFileForGFW(request *gfw.Request) (*gfw.Result, error)
 }
