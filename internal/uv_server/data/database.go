@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 	"uv_server/internal/uv_server/business/data"
 	"uv_server/internal/uv_server/common/loggers"
@@ -173,6 +174,37 @@ func (d *Database) DeleteFile(file *data.File) error {
 
 	_, err := d.db.Exec(statement,
 		file.Id,
+	)
+
+	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
+
+	if err != nil {
+		d.log.Errorf("failed to delete file: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (d *Database) DeleteFiles(ids []int64) error {
+	placeholders := strings.TrimRight(strings.Repeat("?,", len(ids)), ",")
+
+	statement := fmt.Sprintf(`
+	DELETE FROM files
+	WHERE
+		id IN (%s)
+	`, placeholders)
+
+	args := make([]interface{}, len(ids))
+	for i, v := range ids {
+		args[i] = v
+	}
+
+	d.log.Debugf("executing statement: %v", statement)
+	startedAt := time.Now()
+
+	_, err := d.db.Exec(statement,
+		args...,
 	)
 
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())

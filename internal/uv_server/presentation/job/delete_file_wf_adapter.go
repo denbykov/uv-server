@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"sync"
 	"uv_server/internal/uv_protocol"
-	deleteFile "uv_server/internal/uv_server/business/workflows/delete_file"
-	jobmessages "uv_server/internal/uv_server/business/workflows/delete_file/job_messages"
+	deleteFiles "uv_server/internal/uv_server/business/workflows/delete_files"
+	jobmessages "uv_server/internal/uv_server/business/workflows/delete_files/job_messages"
 	"uv_server/internal/uv_server/common"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
@@ -16,30 +16,30 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type DeleteFileWfAdapter struct {
+type DeleteFilesWfAdapter struct {
 	uuid string
 
 	log    *logrus.Entry
 	config *config.Config
 
 	session_in chan<- *Message
-	wf         *deleteFile.DeleteFileWf
+	wf         *deleteFiles.DeleteFilesWf
 
 	resources *data.Resources
 }
 
-func NewDeleteFileWfAdapter(
+func NewDeleteFilesWfAdapter(
 	uuid string,
 	config *config.Config,
 	session_in chan<- *Message,
 	resources *data.Resources,
-) *DeleteFileWfAdapter {
-	object := &DeleteFileWfAdapter{}
+) *DeleteFilesWfAdapter {
+	object := &DeleteFilesWfAdapter{}
 
 	object.uuid = uuid
 	object.log = loggers.PresentationLogger.WithFields(
 		logrus.Fields{
-			"component": "DeleteFileWfAdapter",
+			"component": "DeleteFilesWfAdapter",
 			"uuid":      uuid})
 	object.config = config
 	object.session_in = session_in
@@ -49,14 +49,14 @@ func NewDeleteFileWfAdapter(
 	return object
 }
 
-func (wa *DeleteFileWfAdapter) CreateWf(
+func (wa *DeleteFilesWfAdapter) CreateWf(
 	uuid string,
 	config *config.Config,
 	ctx context.Context,
 	wf_in chan interface{},
 	wf_out chan interface{},
 ) {
-	wa.wf = deleteFile.NewDeleteFileWf(
+	wa.wf = deleteFiles.NewDeleteFilesWf(
 		uuid,
 		config,
 		ctx,
@@ -66,12 +66,12 @@ func (wa *DeleteFileWfAdapter) CreateWf(
 	)
 }
 
-func (wa *DeleteFileWfAdapter) RunWf(
+func (wa *DeleteFilesWfAdapter) RunWf(
 	wg *sync.WaitGroup,
 	msg *uv_protocol.Message,
 ) error {
-	if msg.Header.Type != uv_protocol.DeleteFileRequest {
-		wa.log.Fatalf("unexpected message type, got %v instead of DeleteFileRequest", msg.Header.Type)
+	if msg.Header.Type != uv_protocol.DeleteFilesRequest {
+		wa.log.Fatalf("unexpected message type, got %v instead of DeleteFilesRequest", msg.Header.Type)
 	}
 
 	request := &jobmessages.Request{}
@@ -91,22 +91,22 @@ func (wa *DeleteFileWfAdapter) RunWf(
 	return nil
 }
 
-func (wa *DeleteFileWfAdapter) validateRequest(request *jobmessages.Request) error {
-	if request.Id == nil {
-		return fmt.Errorf("missing \"Id\" field")
+func (wa *DeleteFilesWfAdapter) validateRequest(request *jobmessages.Request) error {
+	if len(request.Ids) == 0 {
+		return fmt.Errorf("\"Ids\" array is empty")
 	}
 
 	return nil
 }
 
-func (wa *DeleteFileWfAdapter) HandleSessionMessage(
+func (wa *DeleteFilesWfAdapter) HandleSessionMessage(
 	msg *uv_protocol.Message,
 ) error {
 	wa.log.Tracef("handling session message: %v", msg.Header.Type)
 	return fmt.Errorf("unexpected message %v", msg.Header.Type)
 }
 
-func (wa *DeleteFileWfAdapter) HandleWfMessage(
+func (wa *DeleteFilesWfAdapter) HandleWfMessage(
 	msg interface{},
 ) (State, error) {
 	wa.log.Tracef("handling wf message")
