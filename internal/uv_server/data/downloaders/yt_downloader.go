@@ -196,7 +196,7 @@ func (d *YtDownloader) ensureDirectoryExists(dir string) {
 	}
 }
 
-func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
+func (d *YtDownloader) Download(wg *sync.WaitGroup, url string, storageDir string) {
 	d.log.Debugf("downloading file from url: %v", url)
 
 	defer wg.Done()
@@ -206,7 +206,6 @@ func (d *YtDownloader) Download(wg *sync.WaitGroup, url string) {
 		d.log.Fatal(err)
 	}
 
-	storageDir := path.Join(wd, "storage")
 	tempDir := path.Join(wd, "tmp", d.uuid)
 	d.ensureDirectoryExists(tempDir)
 

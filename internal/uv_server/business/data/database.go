@@ -2,6 +2,8 @@ package data
 
 import (
 	gfw "uv_server/internal/uv_server/business/workflows/get_files/job_messages"
+	gsw "uv_server/internal/uv_server/business/workflows/get_settings/job_messages"
+	ssw "uv_server/internal/uv_server/business/workflows/set_settings/job_messages"
 )
 
 type Database interface {
@@ -12,4 +14,10 @@ type Database interface {
 	DeleteFile(file *File) error
 
 	GetFilesForGFW(request *gfw.Request) (*gfw.Result, error)
+
+	GetSorageDir() (string, error)
+	SetSorageDir(pathDir string) error
+
+	SetSettingsForSSW(settings *ssw.Request) (*ssw.Result, error)
+	GetSettingsForGSW() (*gsw.Result, error)
 }

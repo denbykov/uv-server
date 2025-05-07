@@ -42,6 +42,7 @@ type DownloadingWf struct {
 	startDownloadingFromYoutube func(
 		downloaderWg *sync.WaitGroup,
 		url string,
+		storageDir string,
 	) error
 }
 
@@ -91,8 +92,9 @@ func (w *DownloadingWf) injectInternalDependencies() {
 	w.startDownloadingFromYoutube = func(
 		downloaderWg *sync.WaitGroup,
 		url string,
+		storageDir string,
 	) error {
-		return startDownloadingFromYoutube(w, downloaderWg, url)
+		return startDownloadingFromYoutube(w, downloaderWg, url, storageDir)
 	}
 }
 
@@ -238,9 +240,13 @@ func startDownloading(
 	if file != nil {
 		return fmt.Errorf("file already exists")
 	}
+	storageDir, err := w.database.GetSorageDir()
+	if err != nil {
+		w.log.Fatalf("failed to get storage dir: %v", err)
+	}
 
 	if source == data.Youtube {
-		err := w.startDownloadingFromYoutube(downloaderWg, url)
+		err := w.startDownloadingFromYoutube(downloaderWg, url, storageDir)
 		if err != nil {
 			return err
 		}
@@ -278,13 +284,14 @@ func startDownloadingFromYoutube(
 	w *DownloadingWf,
 	downloaderWg *sync.WaitGroup,
 	url string,
+	storageDir string,
 ) error {
 	log := w.log.WithField("source", "youtube")
 
 	log.Debugf("starting downloading")
 
 	downloaderWg.Add(1)
-	go w.downloader.Download(downloaderWg, url)
+	go w.downloader.Download(downloaderWg, url, storageDir)
 
 	return nil
 }

@@ -13,8 +13,9 @@ type StartDownloadingFromYoutubeMock struct {
 func (m *StartDownloadingFromYoutubeMock) do(
 	downloaderWg *sync.WaitGroup,
 	url string,
+	storageDir string,
 ) error {
-	args := m.Called(downloaderWg, url)
+	args := m.Called(downloaderWg, url, storageDir)
 	return args.Error(0)
 }
 

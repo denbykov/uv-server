@@ -25,6 +25,9 @@ const (
 	GetFilesRequest
 	GetFilesResponse
 
+	SetSettingsRequest
+	GetSettingsResponse
+
 	Max
 )
 
@@ -46,6 +49,10 @@ func (t Type) String() string {
 		return "GetFilesRequest"
 	case GetFilesResponse:
 		return "GetFilesResponse"
+	case SetSettingsRequest:
+		return "SetSettingsRequest"
+	case GetSettingsResponse:
+		return "GetSettingsResponse"
 
 	default:
 		return fmt.Sprintf("Unknown: %d", t)

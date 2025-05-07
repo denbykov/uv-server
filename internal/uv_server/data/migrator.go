@@ -16,7 +16,7 @@ import (
 	"uv_server/internal/uv_server/config"
 )
 
-var db_version int = 2
+var db_version int = 3
 
 type DbMigrator struct {
 	log        *logrus.Entry

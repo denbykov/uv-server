@@ -58,6 +58,20 @@ func (b *JobBuilder) CreateJob(
 			session_in,
 			b.resources,
 		)
+	case uv_protocol.SetSettingsRequest:
+		wa = job.NewSetSettingsWfAdapter(
+			uuid,
+			b.config,
+			session_in,
+			b.resources,
+		)
+	case uv_protocol.GetSettingsResponse:
+		wa = job.NewGetSettingsWfAdapter(
+			uuid,
+			b.config,
+			session_in,
+			b.resources,
+		)
 	default:
 		return j, fmt.Errorf("unable to create job for message type %v", type_)
 	}
