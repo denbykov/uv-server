@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -77,12 +78,16 @@ func (wa *DeleteFilesWfAdapter) RunWf(
 	request := &jobmessages.Request{}
 	err := common.UnmarshalStrict(msg.Payload, request)
 	if err != nil {
-		return fmt.Errorf("failed to parse payload: %v", err)
+		message := fmt.Sprintf("failed to parse payload: %v", err)
+		wa.log.Errorf(message)
+		return errors.New(message)
 	}
 
 	err = wa.validateRequest(request)
 	if err != nil {
-		return fmt.Errorf("request validation failed: %v", err)
+		message := fmt.Sprintf("request validation failed: %v", err)
+		wa.log.Errorf(message)
+		return errors.New(message)
 	}
 
 	wg.Add(1)

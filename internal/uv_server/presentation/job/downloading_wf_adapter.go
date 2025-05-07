@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -94,7 +95,9 @@ func (wa *DownloadingWfAdapter) RunWf(
 	err := common.UnmarshalStrict(msg.Payload, request)
 
 	if err != nil {
-		return fmt.Errorf("failed to parse payload: %v", err)
+		message := fmt.Sprintf("failed to parse payload: %v", err)
+		wa.log.Errorf(message)
+		return errors.New(message)
 	}
 
 	wg.Add(1)
