@@ -30,6 +30,49 @@ func NewDatabase(db *sql.DB) *Database {
 	return object
 }
 
+func (d *Database) GetFile(id int64) (*data.File, error) {
+	var file data.File
+
+	statement := `
+	SELECT 
+		id,
+		"path",
+		source_url,
+		"source",
+		status,
+		added_at,
+		updated_at
+	FROM files
+		WHERE id=?
+	`
+
+	d.log.Debugf("executing statement: %v", statement)
+	startedAt := time.Now()
+
+	err := d.db.QueryRow(statement, id).Scan(
+		&file.Id,
+		&file.Path,
+		&file.SourceUrl,
+		&file.Source,
+		&file.Status,
+		&file.AddedAt,
+		&file.UpdatedAt,
+	)
+
+	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
+
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+
+	if err != nil {
+		d.log.Errorf("failed to get file: %v", err)
+		return nil, err
+	}
+
+	return &file, nil
+}
+
 func (d *Database) GetFileByUrl(url string) (*data.File, error) {
 	var file data.File
 

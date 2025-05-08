@@ -6,6 +6,7 @@ import (
 )
 
 type Database interface {
+	GetFile(id int64) (*File, error)
 	GetFileByUrl(url string) (*File, error)
 	InsertFile(file *File) (int64, error)
 	UpdateFileStatus(file *File) error

@@ -115,6 +115,64 @@ func (_c *MockDatabase_DeleteFiles_Call) RunAndReturn(run func([]int64) error) *
 	return _c
 }
 
+// GetFile provides a mock function with given fields: id
+func (_m *MockDatabase) GetFile(id int64) (*data.File, error) {
+	ret := _m.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetFile")
+	}
+
+	var r0 *data.File
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int64) (*data.File, error)); ok {
+		return rf(id)
+	}
+	if rf, ok := ret.Get(0).(func(int64) *data.File); ok {
+		r0 = rf(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*data.File)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(int64) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetFile_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetFile'
+type MockDatabase_GetFile_Call struct {
+	*mock.Call
+}
+
+// GetFile is a helper method to define mock.On call
+//   - id int64
+func (_e *MockDatabase_Expecter) GetFile(id interface{}) *MockDatabase_GetFile_Call {
+	return &MockDatabase_GetFile_Call{Call: _e.mock.On("GetFile", id)}
+}
+
+func (_c *MockDatabase_GetFile_Call) Run(run func(id int64)) *MockDatabase_GetFile_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int64))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetFile_Call) Return(_a0 *data.File, _a1 error) *MockDatabase_GetFile_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetFile_Call) RunAndReturn(run func(int64) (*data.File, error)) *MockDatabase_GetFile_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetFileByUrl provides a mock function with given fields: url
 func (_m *MockDatabase) GetFileByUrl(url string) (*data.File, error) {
 	ret := _m.Called(url)

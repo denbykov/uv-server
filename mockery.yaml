@@ -4,3 +4,4 @@ packages:
     uv_server/internal/uv_server/business/data:
         interfaces:
             Database:
+            Filesystem:

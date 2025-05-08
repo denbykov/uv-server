@@ -64,6 +64,7 @@ func (wa *DeleteFilesWfAdapter) CreateWf(
 		wf_out,
 		wf_in,
 		data.NewDatabase(wa.resources.Db),
+		data.NewFilesystem(),
 	)
 }
 
