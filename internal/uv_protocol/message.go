@@ -50,6 +50,7 @@ func (t Type) String() string {
 		return "DownloadingProgress"
 	case DownloadingDone:
 		return "DownloadingDone"
+
 	case CancelRequest:
 		return "CancelRequest"
 	case Error:
@@ -58,25 +59,31 @@ func (t Type) String() string {
 		return "Done"
 	case Canceled:
 		return "Canceled"
+
 	case GetFilesRequest:
 		return "GetFilesRequest"
 	case GetFilesResponse:
 		return "GetFilesResponse"
+
 	case GetFileRequest:
 		return "GetFileRequest"
 	case GetFileResponse:
 		return "GetFileResponse"
+
+	case DeleteFilesRequest:
+		return "DeleteFilesRequest"
+	case DeleteFilesError:
+		return "DeleteFilesError"
+
 	case UpdateSettingsRequest:
 		return "UpdateSettingsRequest"
 	case UpdateSettingsResponse:
 		return "UpdateSettingsResponse"
+
 	case GetSettingsRequest:
 		return "GetSettingsRequest"
 	case GetSettingsResponse:
 		return "GetSettingsResponse"
-
-	case DeleteFilesRequest:
-		return "DeleteFilesRequest"
 
 	default:
 		return fmt.Sprintf("Unknown: %d", t)
