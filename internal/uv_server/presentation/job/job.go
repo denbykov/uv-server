@@ -156,6 +156,7 @@ func (j *Job) buildCanceledMessage() *Message {
 				Uuid: &j.uuid,
 				Type: uv_protocol.Canceled,
 			},
+			Payload: nil,
 		},
 		Done: true,
 	}
