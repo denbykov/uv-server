@@ -3,7 +3,6 @@ package job
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -79,16 +78,16 @@ func (wa *GetFileWfAdapter) RunWf(
 	request := &jobmessages.Request{}
 	err := common.UnmarshalStrict(msg.Payload, request)
 	if err != nil {
-		message := fmt.Sprintf("failed to parse payload: %v", err)
-		wa.log.Errorf(message)
-		return errors.New(message)
+		newErr := fmt.Errorf("failed to parse payload: %w", err)
+		wa.log.Error(newErr)
+		return newErr
 	}
 
 	err = wa.validateRequest(request)
 	if err != nil {
-		message := fmt.Sprintf("request validation failed: %v", err)
-		wa.log.Errorf(message)
-		return errors.New(message)
+		newErr := fmt.Errorf("request validation failed: %v", err)
+		wa.log.Error(newErr)
+		return newErr
 	}
 
 	wg.Add(1)

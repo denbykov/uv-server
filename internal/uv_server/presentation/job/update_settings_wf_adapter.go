@@ -3,7 +3,6 @@ package job
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -79,9 +78,9 @@ func (wa *UpdateSettingsWfAdapter) RunWf(
 	request := &jobmessages.Settings{}
 	err := common.UnmarshalStrict(msg.Payload, request)
 	if err != nil {
-		message := fmt.Sprintf("failed to parse payload: %v", err)
-		wa.log.Error(message)
-		return errors.New(message)
+		newErr := fmt.Errorf("failed to parse payload: %w", err)
+		wa.log.Error(newErr)
+		return newErr
 	}
 
 	wg.Add(1)
@@ -94,9 +93,7 @@ func (wa *UpdateSettingsWfAdapter) HandleSessionMessage(
 	msg *uv_protocol.Message,
 ) error {
 	wa.log.Tracef("handling session message: %v", msg.Header.Type)
-	message := fmt.Sprintf("unexpected message %v", msg.Header.Type)
-	wa.log.Error(message)
-	return errors.New(message)
+	return fmt.Errorf("unexpected message %v", msg.Header.Type)
 }
 
 func (wa *UpdateSettingsWfAdapter) HandleWfMessage(
