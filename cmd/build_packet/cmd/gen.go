@@ -25,9 +25,7 @@ var genCmd = &cobra.Command{
 		if Type == "" {
 			return errors.New("type is required")
 		}
-		if Payload == "" {
-			return errors.New("payload is required")
-		}
+
 		valid, err := msg.ValidType(Type)
 		if err != nil {
 			return err
@@ -39,6 +37,15 @@ var genCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		if Payload == "" {
+			if packetType == msg.GetSettingsRequest || packetType == msg.GetSettingsResponse {
+				Payload = "{}"
+			} else {
+				return errors.New("payload is required")
+			}
+		}
+
 		packet, err := GenHexdump(packetType, Uuid, []byte(Payload))
 		if err != nil {
 			return err
