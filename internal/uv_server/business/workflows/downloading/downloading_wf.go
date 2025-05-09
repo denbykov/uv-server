@@ -233,7 +233,7 @@ func startDownloading(
 	w.log.Debugf("normalized url is: %v", url)
 
 	file, err := w.database.GetFileByUrl(url)
-	if err != nil {
+	if err != nil && !errors.Is(err, data.NotFound) {
 		w.log.Fatalf("failed to get file by url")
 	}
 
