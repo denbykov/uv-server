@@ -62,7 +62,7 @@ func (d *Database) GetFile(id int64) (*data.File, error) {
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+		return nil, errors.New("no such file")
 	}
 
 	if err != nil {
@@ -105,7 +105,7 @@ func (d *Database) GetFileByUrl(url string) (*data.File, error) {
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+		return nil, errors.New("no such file")
 	}
 
 	if err != nil {
@@ -363,7 +363,7 @@ func (d *Database) GetFileForGFW(request *gfw.Request) (*gfw.Result, error) {
 
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		d.log.Errorf("failed to get file: %v", err)
-		return result, fmt.Errorf("failed to get file")
+		return result, errors.New("no such file")
 	}
 
 	return result, nil
