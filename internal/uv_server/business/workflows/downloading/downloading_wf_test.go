@@ -131,8 +131,9 @@ func TestStartDownloading_AlreadyDownloaded(t *testing.T) {
 	wf.startDownloadingFromYoutube = func(
 		downloaderWg *sync.WaitGroup,
 		url string,
+		storageDir string,
 	) error {
-		return downloaderMock.do(downloaderWg, url)
+		return downloaderMock.do(downloaderWg, url, storageDir)
 	}
 	wf.database = dbMock
 
@@ -155,8 +156,9 @@ func TestStartDownloading_HappyPass(t *testing.T) {
 	wf.startDownloadingFromYoutube = func(
 		downloaderWg *sync.WaitGroup,
 		url string,
+		storageDir string,
 	) error {
-		return downloaderMock.do(downloaderWg, url)
+		return downloaderMock.do(downloaderWg, url, storageDir)
 	}
 	wf.database = dbMock
 
@@ -164,7 +166,9 @@ func TestStartDownloading_HappyPass(t *testing.T) {
 	url := "https://www.youtube.com/watch?v=2AB3_l0iqSk"
 
 	dbMock.On("GetFileByUrl", url).Return(nil, nil)
-	downloaderMock.On("do", &downloaderWg, url).Return(nil)
+	storage := &data.Settings{StorageDir: "./storage"}
+	dbMock.On("GetSettings").Return(storage, nil)
+	downloaderMock.On("do", &downloaderWg, url, storage.StorageDir).Return(nil)
 
 	fileId := int64(1)
 
@@ -188,17 +192,18 @@ func TestStartDownloading_HappyPass(t *testing.T) {
 }
 
 func TestStartDownloadingFromYoutube(t *testing.T) {
-	downloaderMock := bdmocks.NewDownloader(t)
+	downloaderMock := bdmocks.NewMockDownloader(t)
 
 	wf := newDownloadingWf()
 	wf.downloader = downloaderMock
 
 	var downloaderWg sync.WaitGroup
 	url := "https://www.youtube.com/watch?v=2AB3_l0iqSk"
+	const storage = "./storage"
 
-	downloaderMock.On("Download", &downloaderWg, url).Return(nil)
+	downloaderMock.On("Download", &downloaderWg, url, storage).Return(nil)
 
-	err := wf.startDownloadingFromYoutube(&downloaderWg, url)
+	err := wf.startDownloadingFromYoutube(&downloaderWg, url, storage)
 	assert.Nil(t, err, "operation should not have failed")
 	time.Sleep(time.Second)
 

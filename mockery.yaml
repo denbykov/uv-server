@@ -5,3 +5,6 @@ packages:
         interfaces:
             Database:
             Filesystem:
+    uv_server/internal/uv_server/business/workflows/downloading/data:
+        interfaces:
+            Downloader:

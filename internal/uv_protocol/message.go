@@ -32,6 +32,12 @@ const (
 
 	DeleteFilesRequest
 
+	UpdateSettingsRequest
+	UpdateSettingsResponse
+
+	GetSettingsRequest
+	GetSettingsResponse
+
 	Max
 )
 
@@ -43,25 +49,34 @@ func (t Type) String() string {
 		return "DownloadingProgress"
 	case DownloadingDone:
 		return "DownloadingDone"
-
 	case CancelRequest:
 		return "CancelRequest"
 	case Error:
 		return "Error"
 	case Done:
 		return "Done"
+<<<<<<< HEAD
 	case Canceled:
 		return "Canceled"
 
+=======
+>>>>>>> origin/main
 	case GetFilesRequest:
 		return "GetFilesRequest"
 	case GetFilesResponse:
 		return "GetFilesResponse"
-
 	case GetFileRequest:
 		return "GetFileRequest"
 	case GetFileResponse:
 		return "GetFileResponse"
+	case UpdateSettingsRequest:
+		return "UpdateSettingsRequest"
+	case UpdateSettingsResponse:
+		return "UpdateSettingsResponse"
+	case GetSettingsRequest:
+		return "GetSettingsRequest"
+	case GetSettingsResponse:
+		return "GetSettingsResponse"
 
 	case DeleteFilesRequest:
 		return "DeleteFilesRequest"

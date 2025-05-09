@@ -368,3 +368,66 @@ func (d *Database) GetFileForGFW(request *gfw.Request) (*gfw.Result, error) {
 
 	return result, nil
 }
+
+func (d *Database) GetSettings() (*data.Settings, error) {
+	var settings data.Settings
+
+	statement := `
+	SELECT
+		storage_dir
+	FROM settings
+	`
+
+	d.log.Debugf("executing statement: %v", statement)
+	startedAt := time.Now()
+
+	err := d.db.QueryRow(statement).Scan(
+		&settings.StorageDir,
+	)
+
+	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
+
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		d.log.Errorf("failed to get settings: %v", err)
+		return nil, fmt.Errorf("failed to get settings")
+	}
+
+	return &settings, nil
+}
+
+func (d *Database) UpdateSettings(settings *data.Settings) (*data.Settings, error) {
+	deleteStmt := `DELETE FROM settings`
+
+	d.log.Debugf("executing statement: %v", deleteStmt)
+	startedAt := time.Now()
+
+	_, err := d.db.Exec(deleteStmt)
+
+	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
+
+	if err != nil {
+		d.log.Errorf("failed to delete existing settings: %v", err)
+		return nil, fmt.Errorf("failed to update settings")
+	}
+
+	insertStmt := `
+    INSERT INTO settings (
+        storage_dir
+    ) VALUES (
+        ?
+    )`
+
+	d.log.Debugf("executing statement: %v", insertStmt)
+	startedAt = time.Now()
+
+	_, err = d.db.Exec(insertStmt, settings.StorageDir)
+
+	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
+
+	if err != nil {
+		d.log.Errorf("failed to insert new settings: %v", err)
+		return nil, fmt.Errorf("failed to update settings")
+	}
+
+	return settings, nil
+}
