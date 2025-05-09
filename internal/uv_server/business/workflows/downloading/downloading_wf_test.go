@@ -292,8 +292,8 @@ func TestRun_ContextCancelled(t *testing.T) {
 
 	select {
 	case msg := <-jobIn:
-		tMsg := msg.(*cjmessages.Error)
-		assert.Equal(t, tMsg.Reason, "Workflow cancelled")
+		_, ok := msg.(*cjmessages.Canceled)
+		assert.Equal(t, ok, true)
 	default:
 		t.Error("missing expected message")
 	}

@@ -8,3 +8,6 @@ var InternalError = Error{Reason: "Internal error"}
 
 type Done struct {
 }
+
+type Canceled struct {
+}

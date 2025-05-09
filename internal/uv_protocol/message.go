@@ -22,6 +22,7 @@ const (
 	CancelRequest
 	Error
 	Done
+	Canceled
 
 	GetFilesRequest
 	GetFilesResponse
@@ -49,6 +50,8 @@ func (t Type) String() string {
 		return "Error"
 	case Done:
 		return "Done"
+	case Canceled:
+		return "Canceled"
 
 	case GetFilesRequest:
 		return "GetFilesRequest"

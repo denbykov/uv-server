@@ -64,7 +64,7 @@ func (w *GetFileWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 		case context.DeadlineExceeded:
 			w.jobIn <- &cjmessages.Error{Reason: "Timeout exceeded"}
 		case context.Canceled:
-			w.jobIn <- &cjmessages.Error{Reason: "Workflow cancelled"}
+			w.jobIn <- &cjmessages.Canceled{}
 		}
 	default:
 	}
