@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -84,7 +85,9 @@ func (wa *GetSettingsWfAdapter) HandleSessionMessage(
 	msg *uv_protocol.Message,
 ) error {
 	wa.log.Tracef("handling session message: %v", msg.Header.Type)
-	return fmt.Errorf("unexpected message %v", msg.Header.Type)
+	message := fmt.Sprintf("unexpected message %v", msg.Header.Type)
+	wa.log.Error(message)
+	return errors.New(message)
 }
 
 func (wa *GetSettingsWfAdapter) HandleWfMessage(

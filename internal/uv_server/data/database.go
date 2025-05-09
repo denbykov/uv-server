@@ -326,7 +326,11 @@ func (d *Database) UpdateSettings(request *data.Settings) (*data.Settings, error
 		d.log.Errorf("failed to begin transaction: %v", err)
 		return nil, fmt.Errorf("failed to update settings")
 	}
-	defer tx.Rollback()
+	defer func() {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && rollbackErr != sql.ErrTxDone {
+			d.log.Errorf("failed to rollback transaction: %v", err)
+		}
+	}()
 
 	deleteStmt := `DELETE FROM settings`
 
