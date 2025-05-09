@@ -29,6 +29,11 @@ const (
 	GetFileRequest
 	GetFileResponse
 
+	UpdateSettingsRequest
+	UpdateSettingsResponse
+	GetSettingsRequest
+	GetSettingsResponse
+
 	Max
 )
 
@@ -40,23 +45,28 @@ func (t Type) String() string {
 		return "DownloadingProgress"
 	case DownloadingDone:
 		return "DownloadingDone"
-
 	case CancelRequest:
 		return "CancelRequest"
 	case Error:
 		return "Error"
 	case Done:
 		return "Done"
-
 	case GetFilesRequest:
 		return "GetFilesRequest"
 	case GetFilesResponse:
 		return "GetFilesResponse"
-
 	case GetFileRequest:
 		return "GetFileRequest"
 	case GetFileResponse:
 		return "GetFileResponse"
+	case UpdateSettingsRequest:
+		return "UpdateSettingsRequest"
+	case UpdateSettingsResponse:
+		return "UpdateSettingsResponse"
+	case GetSettingsRequest:
+		return "GetSettingsRequest"
+	case GetSettingsResponse:
+		return "GetSettingsResponse"
 
 	default:
 		return fmt.Sprintf("Unknown: %d", t)

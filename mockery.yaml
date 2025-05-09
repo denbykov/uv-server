@@ -4,3 +4,6 @@ packages:
     uv_server/internal/uv_server/business/data:
         interfaces:
             Database:
+    uv_server/internal/uv_server/business/workflows/downloading/data:
+        interfaces:
+            Downloader:

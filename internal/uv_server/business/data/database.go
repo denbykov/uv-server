@@ -11,7 +11,8 @@ type Database interface {
 	UpdateFileStatus(file *File) error
 	UpdateFilePath(file *File) error
 	DeleteFile(file *File) error
-
 	GetFilesForGFW(request *gfsw.Request) (*gfsw.Result, error)
 	GetFileForGFW(request *gfw.Request) (*gfw.Result, error)
+	GetSettings() (*Settings, error)
+	UpdateSettings(settings *Settings) (*Settings, error)
 }
