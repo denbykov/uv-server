@@ -4,7 +4,8 @@ package mocks
 
 import (
 	data "uv_server/internal/uv_server/business/data"
-	jobmessages "uv_server/internal/uv_server/business/workflows/get_files/job_messages"
+	jobmessages "uv_server/internal/uv_server/business/workflows/get_file/job_messages"
+	job_messages "uv_server/internal/uv_server/business/workflows/get_files/job_messages"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -126,12 +127,12 @@ func (_c *MockDatabase_GetFileByUrl_Call) RunAndReturn(run func(string) (*data.F
 	return _c
 }
 
-// GetFilesForGFW provides a mock function with given fields: request
-func (_m *MockDatabase) GetFilesForGFW(request *jobmessages.Request) (*jobmessages.Result, error) {
+// GetFileForGFW provides a mock function with given fields: request
+func (_m *MockDatabase) GetFileForGFW(request *jobmessages.Request) (*jobmessages.Result, error) {
 	ret := _m.Called(request)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetFilesForGFW")
+		panic("no return value specified for GetFileForGFW")
 	}
 
 	var r0 *jobmessages.Result
@@ -156,30 +157,88 @@ func (_m *MockDatabase) GetFilesForGFW(request *jobmessages.Request) (*jobmessag
 	return r0, r1
 }
 
-// MockDatabase_GetFilesForGFW_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetFilesForGFW'
-type MockDatabase_GetFilesForGFW_Call struct {
+// MockDatabase_GetFileForGFW_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetFileForGFW'
+type MockDatabase_GetFileForGFW_Call struct {
 	*mock.Call
 }
 
-// GetFilesForGFW is a helper method to define mock.On call
+// GetFileForGFW is a helper method to define mock.On call
 //   - request *jobmessages.Request
-func (_e *MockDatabase_Expecter) GetFilesForGFW(request interface{}) *MockDatabase_GetFilesForGFW_Call {
-	return &MockDatabase_GetFilesForGFW_Call{Call: _e.mock.On("GetFilesForGFW", request)}
+func (_e *MockDatabase_Expecter) GetFileForGFW(request interface{}) *MockDatabase_GetFileForGFW_Call {
+	return &MockDatabase_GetFileForGFW_Call{Call: _e.mock.On("GetFileForGFW", request)}
 }
 
-func (_c *MockDatabase_GetFilesForGFW_Call) Run(run func(request *jobmessages.Request)) *MockDatabase_GetFilesForGFW_Call {
+func (_c *MockDatabase_GetFileForGFW_Call) Run(run func(request *jobmessages.Request)) *MockDatabase_GetFileForGFW_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(*jobmessages.Request))
 	})
 	return _c
 }
 
-func (_c *MockDatabase_GetFilesForGFW_Call) Return(_a0 *jobmessages.Result, _a1 error) *MockDatabase_GetFilesForGFW_Call {
+func (_c *MockDatabase_GetFileForGFW_Call) Return(_a0 *jobmessages.Result, _a1 error) *MockDatabase_GetFileForGFW_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockDatabase_GetFilesForGFW_Call) RunAndReturn(run func(*jobmessages.Request) (*jobmessages.Result, error)) *MockDatabase_GetFilesForGFW_Call {
+func (_c *MockDatabase_GetFileForGFW_Call) RunAndReturn(run func(*jobmessages.Request) (*jobmessages.Result, error)) *MockDatabase_GetFileForGFW_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetFilesForGFW provides a mock function with given fields: request
+func (_m *MockDatabase) GetFilesForGFW(request *job_messages.Request) (*job_messages.Result, error) {
+	ret := _m.Called(request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetFilesForGFW")
+	}
+
+	var r0 *job_messages.Result
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*job_messages.Request) (*job_messages.Result, error)); ok {
+		return rf(request)
+	}
+	if rf, ok := ret.Get(0).(func(*job_messages.Request) *job_messages.Result); ok {
+		r0 = rf(request)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*job_messages.Result)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*job_messages.Request) error); ok {
+		r1 = rf(request)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatabase_GetFilesForGFW_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetFilesForGFW'
+type MockDatabase_GetFilesForGFW_Call struct {
+	*mock.Call
+}
+
+// GetFilesForGFW is a helper method to define mock.On call
+//   - request *job_messages.Request
+func (_e *MockDatabase_Expecter) GetFilesForGFW(request interface{}) *MockDatabase_GetFilesForGFW_Call {
+	return &MockDatabase_GetFilesForGFW_Call{Call: _e.mock.On("GetFilesForGFW", request)}
+}
+
+func (_c *MockDatabase_GetFilesForGFW_Call) Run(run func(request *job_messages.Request)) *MockDatabase_GetFilesForGFW_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*job_messages.Request))
+	})
+	return _c
+}
+
+func (_c *MockDatabase_GetFilesForGFW_Call) Return(_a0 *job_messages.Result, _a1 error) *MockDatabase_GetFilesForGFW_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatabase_GetFilesForGFW_Call) RunAndReturn(run func(*job_messages.Request) (*job_messages.Result, error)) *MockDatabase_GetFilesForGFW_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -182,7 +182,7 @@ func (w *DownloadingWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 
 				downloaderWg.Wait()
 				w.jobIn <- &jobmessages.Progress{Id: w.fileId, Percentage: 100}
-				w.jobIn <- &cjmessages.Done{}
+				w.jobIn <- &jobmessages.Done{Id: w.fileId}
 				return
 			} else {
 				downloaderWg.Wait()

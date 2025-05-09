@@ -383,7 +383,7 @@ func TestRun_HappyPass(t *testing.T) {
 	assert.Equal(t, tMsg.Percentage, float64(100))
 
 	msg = <-jobIn
-	_, ok := msg.(*cjmessages.Done)
+	_, ok := msg.(*jobmessages.Done)
 	assert.True(t, ok)
 
 	wg.Wait()
