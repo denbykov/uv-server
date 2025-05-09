@@ -31,6 +31,7 @@ const (
 	GetFileResponse
 
 	DeleteFilesRequest
+	DeleteFilesError
 
 	UpdateSettingsRequest
 	UpdateSettingsResponse

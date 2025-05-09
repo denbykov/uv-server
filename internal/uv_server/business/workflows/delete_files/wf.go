@@ -3,7 +3,6 @@ package deletefile
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"path"
 	"sync"
@@ -85,13 +84,7 @@ func (w *DeleteFilesWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
 	}
 
 	if len(failedFiles) != 0 {
-		errorMessage := "failed to delete files with ids: "
-
-		for _, id := range failedFiles {
-			errorMessage += fmt.Sprintf("%v,", id)
-		}
-
-		w.jobIn <- &cjmessages.Error{Reason: errorMessage}
+		w.jobIn <- &jobmessages.Error{FailedIds: failedFiles}
 		return
 	}
 

@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sync"
@@ -115,6 +116,28 @@ func (wa *DeleteFilesWfAdapter) HandleWfMessage(
 	msg interface{},
 ) (State, error) {
 	wa.log.Tracef("handling wf message")
-	wa.log.Fatalf("Unknown message: %v", reflect.TypeOf(msg))
+
+	if tMsg, ok := msg.(*jobmessages.Error); ok {
+		payload, err := json.Marshal(tMsg)
+		if err != nil {
+			wa.log.Fatalf("failed to serialize message: %v", err)
+		}
+
+		msg := &Message{
+			Msg: &uv_protocol.Message{
+				Header: &uv_protocol.Header{
+					Uuid: &wa.uuid,
+					Type: uv_protocol.DeleteFilesError,
+				},
+				Payload: payload,
+			},
+			Done: true,
+		}
+
+		wa.session_in <- msg
+	} else {
+		wa.log.Fatalf("Unknown message: %v", reflect.TypeOf(msg))
+	}
+
 	return Done, nil
 }
