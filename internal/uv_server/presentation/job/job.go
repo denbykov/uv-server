@@ -135,7 +135,7 @@ func (j *Job) buildErrorMessage(reason string) *Message {
 		j.log.Fatalf("failed to serialize message: %v", err)
 	}
 
-	err_msg := &Message{
+	msg := &Message{
 		Msg: &uv_protocol.Message{
 			Header: &uv_protocol.Header{
 				Uuid: &j.uuid,
@@ -146,7 +146,21 @@ func (j *Job) buildErrorMessage(reason string) *Message {
 		Done: true,
 	}
 
-	return err_msg
+	return msg
+}
+
+func (j *Job) buildCanceledMessage() *Message {
+	msg := &Message{
+		Msg: &uv_protocol.Message{
+			Header: &uv_protocol.Header{
+				Uuid: &j.uuid,
+				Type: uv_protocol.Canceled,
+			},
+		},
+		Done: true,
+	}
+
+	return msg
 }
 
 func (j *Job) buildDoneMessage() *Message {
@@ -219,6 +233,9 @@ func (j *Job) canceled(ctx context.Context, wg *sync.WaitGroup) State {
 	case msg := <-j.wf_out:
 		if tMsg, ok := msg.(*cjmessages.Error); ok {
 			err_msg := j.buildErrorMessage(tMsg.Reason)
+			j.session_in <- err_msg
+		} else if _, ok := msg.(*cjmessages.Canceled); ok {
+			err_msg := j.buildCanceledMessage()
 			j.session_in <- err_msg
 		} else {
 			j.log.Fatalf("Unexpected workflow message: %v %v", reflect.TypeOf(msg), msg)
