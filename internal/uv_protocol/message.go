@@ -55,12 +55,8 @@ func (t Type) String() string {
 		return "Error"
 	case Done:
 		return "Done"
-<<<<<<< HEAD
 	case Canceled:
 		return "Canceled"
-
-=======
->>>>>>> origin/main
 	case GetFilesRequest:
 		return "GetFilesRequest"
 	case GetFilesResponse:
