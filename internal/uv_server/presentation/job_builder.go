@@ -65,6 +65,13 @@ func (b *JobBuilder) CreateJob(
 			session_in,
 			b.resources,
 		)
+	case uv_protocol.DeleteFilesRequest:
+		wa = job.NewDeleteFilesWfAdapter(
+			uuid,
+			b.config,
+			session_in,
+			b.resources,
+		)
 	case uv_protocol.UpdateSettingsRequest:
 		wa = job.NewSetSettingsWfAdapter(
 			uuid,

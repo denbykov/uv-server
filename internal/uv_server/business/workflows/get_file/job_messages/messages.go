@@ -3,7 +3,7 @@ package jobmessages
 import "time"
 
 type Request struct {
-	Id *int `json:"id"`
+	Id *int64 `json:"id"`
 }
 
 type Result struct {

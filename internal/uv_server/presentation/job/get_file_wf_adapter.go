@@ -78,12 +78,16 @@ func (wa *GetFileWfAdapter) RunWf(
 	request := &jobmessages.Request{}
 	err := common.UnmarshalStrict(msg.Payload, request)
 	if err != nil {
-		return fmt.Errorf("failed to parse payload: %v", err)
+		newErr := fmt.Errorf("failed to parse payload: %w", err)
+		wa.log.Error(newErr)
+		return newErr
 	}
 
 	err = wa.validateRequest(request)
 	if err != nil {
-		return fmt.Errorf("request validation failed: %v", err)
+		newErr := fmt.Errorf("request validation failed: %v", err)
+		wa.log.Error(newErr)
+		return newErr
 	}
 
 	wg.Add(1)

@@ -94,7 +94,9 @@ func (wa *DownloadingWfAdapter) RunWf(
 	err := common.UnmarshalStrict(msg.Payload, request)
 
 	if err != nil {
-		return fmt.Errorf("failed to parse payload: %v", err)
+		newErr := fmt.Errorf("failed to parse payload: %w", err)
+		wa.log.Error(newErr)
+		return newErr
 	}
 
 	wg.Add(1)

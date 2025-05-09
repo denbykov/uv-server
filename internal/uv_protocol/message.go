@@ -22,6 +22,7 @@ const (
 	CancelRequest
 	Error
 	Done
+	Canceled
 
 	GetFilesRequest
 	GetFilesResponse
@@ -29,8 +30,11 @@ const (
 	GetFileRequest
 	GetFileResponse
 
+	DeleteFilesRequest
+
 	UpdateSettingsRequest
 	UpdateSettingsResponse
+
 	GetSettingsRequest
 	GetSettingsResponse
 
@@ -51,6 +55,8 @@ func (t Type) String() string {
 		return "Error"
 	case Done:
 		return "Done"
+	case Canceled:
+		return "Canceled"
 	case GetFilesRequest:
 		return "GetFilesRequest"
 	case GetFilesResponse:
@@ -67,6 +73,9 @@ func (t Type) String() string {
 		return "GetSettingsRequest"
 	case GetSettingsResponse:
 		return "GetSettingsResponse"
+
+	case DeleteFilesRequest:
+		return "DeleteFilesRequest"
 
 	default:
 		return fmt.Sprintf("Unknown: %d", t)

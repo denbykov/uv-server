@@ -108,7 +108,6 @@ func (j *Job) Run(m *uv_protocol.Message) {
 	err := j.wf_adatapter.RunWf(&wg, m)
 
 	if err != nil {
-		j.log.Error(err)
 		err_msg := j.buildErrorMessage(err.Error())
 		j.session_in <- err_msg
 		return
@@ -118,7 +117,7 @@ func (j *Job) Run(m *uv_protocol.Message) {
 	for {
 		switch nextState {
 		case Active:
-			nextState = j.active(ctx, cancel, &wg)
+			nextState = j.active(ctx, cancel)
 		case Canceled:
 			nextState = j.canceled(ctx, &wg)
 		case Done:
@@ -166,7 +165,7 @@ func (j *Job) buildDoneMessage() *Message {
 }
 
 func (j *Job) active(
-	ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup) State {
+	ctx context.Context, cancel context.CancelFunc) State {
 	j.log.Trace("entering active state")
 
 	for {
