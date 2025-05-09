@@ -66,7 +66,7 @@ func (t Type) String() string {
 	case GetSettingsRequest:
 		return "GetSettingsRequest"
 	case GetSettingsResponse:
-		return "GetSettingsRequest"
+		return "GetSettingsResponse"
 
 	default:
 		return fmt.Sprintf("Unknown: %d", t)
