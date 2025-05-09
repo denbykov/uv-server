@@ -166,9 +166,9 @@ func TestStartDownloading_HappyPass(t *testing.T) {
 	url := "https://www.youtube.com/watch?v=2AB3_l0iqSk"
 
 	dbMock.On("GetFileByUrl", url).Return(nil, nil)
-	const storage = "./storage"
-	dbMock.On("GetSorageDir").Return(storage, nil)
-	downloaderMock.On("do", &downloaderWg, url, storage).Return(nil)
+	storage := &data.Settings{StorageDir: "./storage"}
+	dbMock.On("GetSettings").Return(storage, nil)
+	downloaderMock.On("do", &downloaderWg, url, storage.StorageDir).Return(nil)
 
 	fileId := int64(1)
 

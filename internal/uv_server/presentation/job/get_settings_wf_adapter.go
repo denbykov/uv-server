@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"sync"
 	"uv_server/internal/uv_protocol"
+	jobmessages "uv_server/internal/uv_server/business/data"
 	getsettings "uv_server/internal/uv_server/business/workflows/get_settings"
-	jobmessages "uv_server/internal/uv_server/business/workflows/get_settings/job_messages"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 	"uv_server/internal/uv_server/data"
@@ -70,8 +70,8 @@ func (wa *GetSettingsWfAdapter) RunWf(
 	wg *sync.WaitGroup,
 	msg *uv_protocol.Message,
 ) error {
-	if msg.Header.Type != uv_protocol.GetSettingsResponse {
-		wa.log.Fatalf("unexpected message type, got %v instead of GetSettingsResponse", msg.Header.Type)
+	if msg.Header.Type != uv_protocol.GetSettingsRequest {
+		wa.log.Fatalf("unexpected message type, got %v instead of GetSettingsRequest", msg.Header.Type)
 	}
 
 	wg.Add(1)
@@ -92,7 +92,7 @@ func (wa *GetSettingsWfAdapter) HandleWfMessage(
 ) (State, error) {
 	wa.log.Tracef("handling wf message")
 
-	if tMsg, ok := msg.(*jobmessages.Result); ok {
+	if tMsg, ok := msg.(*jobmessages.Settings); ok {
 		payload, err := json.Marshal(tMsg)
 		if err != nil {
 			wa.log.Fatalf("failed to serialize message: %v", err)

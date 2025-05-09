@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"sync"
 	"uv_server/internal/uv_protocol"
-	setsettings "uv_server/internal/uv_server/business/workflows/set_settings"
-	jobmessages "uv_server/internal/uv_server/business/workflows/set_settings/job_messages"
+	jobmessages "uv_server/internal/uv_server/business/data"
+	updatesettings "uv_server/internal/uv_server/business/workflows/update_settings"
 	"uv_server/internal/uv_server/common"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
@@ -17,14 +17,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type SetSettingsWfAdapter struct {
+type UpdateSettingsWfAdapter struct {
 	uuid string
 
 	log    *logrus.Entry
 	config *config.Config
 
 	session_in chan<- *Message
-	wf         *setsettings.SetSettingsWf
+	wf         *updatesettings.UpdateSettingsWf
 
 	resources *data.Resources
 }
@@ -34,13 +34,13 @@ func NewSetSettingsWfAdapter(
 	config *config.Config,
 	session_in chan<- *Message,
 	resources *data.Resources,
-) *SetSettingsWfAdapter {
-	object := &SetSettingsWfAdapter{}
+) *UpdateSettingsWfAdapter {
+	object := &UpdateSettingsWfAdapter{}
 
 	object.uuid = uuid
 	object.log = loggers.PresentationLogger.WithFields(
 		logrus.Fields{
-			"component": "SetSettingsWfAdapter",
+			"component": "UpdateSettingsWfAdapter",
 			"uuid":      uuid})
 	object.config = config
 	object.session_in = session_in
@@ -50,14 +50,14 @@ func NewSetSettingsWfAdapter(
 	return object
 }
 
-func (wa *SetSettingsWfAdapter) CreateWf(
+func (wa *UpdateSettingsWfAdapter) CreateWf(
 	uuid string,
 	config *config.Config,
 	ctx context.Context,
 	wf_in chan interface{},
 	wf_out chan interface{},
 ) {
-	wa.wf = setsettings.NewSetSettingsWf(
+	wa.wf = updatesettings.NewUpdateSettingsWf(
 		uuid,
 		config,
 		ctx,
@@ -67,15 +67,15 @@ func (wa *SetSettingsWfAdapter) CreateWf(
 	)
 }
 
-func (wa *SetSettingsWfAdapter) RunWf(
+func (wa *UpdateSettingsWfAdapter) RunWf(
 	wg *sync.WaitGroup,
 	msg *uv_protocol.Message,
 ) error {
-	if msg.Header.Type != uv_protocol.SetSettingsRequest {
-		wa.log.Fatalf("unexpected message type, got %v instead of SetSettingsRequest", msg.Header.Type)
+	if msg.Header.Type != uv_protocol.UpdateSettingsRequest {
+		wa.log.Fatalf("unexpected message type, got %v instead of UpdateSettingsRequest", msg.Header.Type)
 	}
 
-	request := &jobmessages.Request{}
+	request := &jobmessages.Settings{}
 	err := common.UnmarshalStrict(msg.Payload, request)
 	if err != nil {
 		return fmt.Errorf("failed to parse payload: %v", err)
@@ -87,19 +87,19 @@ func (wa *SetSettingsWfAdapter) RunWf(
 	return nil
 }
 
-func (wa *SetSettingsWfAdapter) HandleSessionMessage(
+func (wa *UpdateSettingsWfAdapter) HandleSessionMessage(
 	msg *uv_protocol.Message,
 ) error {
 	wa.log.Tracef("handling session message: %v", msg.Header.Type)
 	return fmt.Errorf("unexpected message %v", msg.Header.Type)
 }
 
-func (wa *SetSettingsWfAdapter) HandleWfMessage(
+func (wa *UpdateSettingsWfAdapter) HandleWfMessage(
 	msg interface{},
 ) (State, error) {
 	wa.log.Tracef("handling wf message")
 
-	if tMsg, ok := msg.(*jobmessages.Result); ok {
+	if tMsg, ok := msg.(*jobmessages.Settings); ok {
 		payload, err := json.Marshal(tMsg)
 		if err != nil {
 			wa.log.Fatalf("failed to serialize message: %v", err)
@@ -109,7 +109,7 @@ func (wa *SetSettingsWfAdapter) HandleWfMessage(
 			Msg: &uv_protocol.Message{
 				Header: &uv_protocol.Header{
 					Uuid: &wa.uuid,
-					Type: uv_protocol.SetSettingsRequest,
+					Type: uv_protocol.UpdateSettingsResponse,
 				},
 				Payload: payload,
 			},

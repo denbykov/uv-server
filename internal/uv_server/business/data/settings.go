@@ -1,5 +1,5 @@
-package jobmessages
+package data
 
-type Result struct {
+type Settings struct {
 	StorageDir string `json:"storage_dir"`
 }

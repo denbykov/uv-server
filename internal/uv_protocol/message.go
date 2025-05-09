@@ -17,6 +17,7 @@ type Type int
 const (
 	DownloadingRequest Type = iota
 	DownloadingProgress
+	DownloadingDone
 
 	CancelRequest
 	Error
@@ -25,7 +26,12 @@ const (
 	GetFilesRequest
 	GetFilesResponse
 
-	SetSettingsRequest
+	GetFileRequest
+	GetFileResponse
+
+	UpdateSettingsRequest
+	UpdateSettingsResponse
+	GetSettingsRequest
 	GetSettingsResponse
 
 	Max
@@ -37,22 +43,30 @@ func (t Type) String() string {
 		return "DownloadingRequest"
 	case DownloadingProgress:
 		return "DownloadingProgress"
-
+	case DownloadingDone:
+		return "DownloadingDone"
 	case CancelRequest:
 		return "CancelRequest"
 	case Error:
 		return "Error"
 	case Done:
 		return "Done"
-
 	case GetFilesRequest:
 		return "GetFilesRequest"
 	case GetFilesResponse:
 		return "GetFilesResponse"
-	case SetSettingsRequest:
-		return "SetSettingsRequest"
+	case GetFileRequest:
+		return "GetFileRequest"
+	case GetFileResponse:
+		return "GetFileResponse"
+	case UpdateSettingsRequest:
+		return "UpdateSettingsRequest"
+	case UpdateSettingsResponse:
+		return "UpdateSettingsResponse"
+	case GetSettingsRequest:
+		return "GetSettingsRequest"
 	case GetSettingsResponse:
-		return "GetSettingsResponse"
+		return "GetSettingsRequest"
 
 	default:
 		return fmt.Sprintf("Unknown: %d", t)

@@ -240,10 +240,12 @@ func startDownloading(
 	if file != nil {
 		return fmt.Errorf("file already exists")
 	}
-	storageDir, err := w.database.GetSorageDir()
+	settings, err := w.database.GetSettings()
 	if err != nil {
 		w.log.Fatalf("failed to get storage dir: %v", err)
 	}
+
+	storageDir := settings.StorageDir
 
 	if source == data.Youtube {
 		err := w.startDownloadingFromYoutube(downloaderWg, url, storageDir)

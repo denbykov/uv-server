@@ -49,7 +49,7 @@ func NewGetSettingsWf(
 
 func (w *GetSettingsWf) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
-	result, err := w.database.GetSettingsForGSW()
+	result, err := w.database.GetSettings()
 
 	select {
 	case <-w.jobCtx.Done():

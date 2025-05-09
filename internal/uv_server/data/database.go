@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"reflect"
-	"strings"
 	"time"
 	"uv_server/internal/uv_server/business/data"
 	"uv_server/internal/uv_server/common/loggers"
@@ -13,8 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	gfw "uv_server/internal/uv_server/business/workflows/get_files/job_messages"
-	gsw "uv_server/internal/uv_server/business/workflows/get_settings/job_messages"
-	ssw "uv_server/internal/uv_server/business/workflows/set_settings/job_messages"
 )
 
 type Database struct {
@@ -255,147 +251,21 @@ func (d *Database) GetFilesForGFW(request *gfw.Request) (*gfw.Result, error) {
 	return result, nil
 }
 
-func (d *Database) GetSorageDir() (string, error) {
-	var dir string
+func (d *Database) GetSettings() (*data.Settings, error) {
+	var settings data.Settings
 
 	statement := `
 	SELECT
 		storage_dir
-	FROM app
+	FROM settings
 	`
 
 	d.log.Debugf("executing statement: %v", statement)
 	startedAt := time.Now()
 
-	err := d.db.QueryRow(statement).Scan(&dir)
-
-	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
-
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		d.log.Errorf("failed to get storage dir: %v", err)
-		return "", fmt.Errorf("failed to get storage dir")
-	}
-
-	return dir, nil
-}
-
-func (d *Database) SetSorageDir(pathDir string) error {
-	statement := `
-	UPDATE app
-		SET storage_dir =?
-	`
-
-	d.log.Debugf("executing statement: %v", statement)
-	startedAt := time.Now()
-
-	_, err := d.db.Exec(statement, pathDir)
-
-	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
-
-	if err != nil {
-		d.log.Errorf("failed to set storage dir: %v", err)
-		return fmt.Errorf("failed to set storage dir")
-	}
-
-	return nil
-}
-
-func getStructFieldsAndValues(structValue reflect.Value) ([]string, []interface{}) {
-	if structValue.Kind() == reflect.Ptr {
-		structValue = structValue.Elem()
-	}
-
-	setFields := make([]string, 0, structValue.NumField())
-	values := make([]interface{}, 0, structValue.NumField())
-
-	for i, field := range reflect.VisibleFields(structValue.Type()) {
-		jsonTag := field.Tag.Get("json")
-		dbColumn := jsonTag
-		if dbColumn == "" {
-			dbColumn = strings.ToLower(field.Name)
-		}
-		setFields = append(setFields, fmt.Sprintf("%s = ?", dbColumn))
-		values = append(values, structValue.Field(i).Interface())
-	}
-
-	return setFields, values
-}
-
-func getStructFieldsAndDestinations(structPtr interface{}) ([]string, []interface{}) {
-	structValue := reflect.ValueOf(structPtr)
-	if structValue.Kind() == reflect.Ptr {
-		structValue = structValue.Elem()
-	}
-
-	structType := structValue.Type()
-	fields := make([]string, 0, structType.NumField())
-	destinations := make([]interface{}, 0, structType.NumField())
-
-	for _, field := range reflect.VisibleFields(structType) {
-		jsonTag := field.Tag.Get("json")
-		dbColumn := jsonTag
-		if dbColumn == "" {
-			dbColumn = strings.ToLower(field.Name)
-		}
-		fields = append(fields, dbColumn)
-		destinations = append(destinations, structValue.FieldByName(field.Name).Addr().Interface())
-	}
-
-	return fields, destinations
-}
-
-func (d *Database) SetSettingsForSSW(request *ssw.Request) (*ssw.Result, error) {
-	setFields, values := getStructFieldsAndValues(reflect.ValueOf(request.Settings))
-	statement := "UPDATE app SET " + strings.Join(setFields, ", ")
-
-	d.log.Debugf("executing statement: %v", statement)
-	startedAt := time.Now()
-
-	_, err := d.db.Exec(statement, values...)
-
-	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
-
-	if err != nil {
-		d.log.Errorf("failed to set settings: %v", err)
-		return nil, fmt.Errorf("failed to set settings")
-	}
-	result := &ssw.Result{}
-
-	fields, destinations := getStructFieldsAndDestinations(&result.Settings)
-
-	selectStatement := fmt.Sprintf(`
-	SELECT
-		%s
-	FROM app
-	`, strings.Join(fields, ",\n\t\t"))
-
-	d.log.Debugf("executing statement: %v", selectStatement)
-
-	err = d.db.QueryRow(selectStatement).Scan(destinations...)
-
-	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
-
-	if err != nil {
-		d.log.Errorf("failed to get settings: %v", err)
-		return nil, fmt.Errorf("failed to get settings")
-	}
-
-	return result, nil
-}
-
-func (d *Database) GetSettingsForGSW() (*gsw.Result, error) {
-	result := &gsw.Result{}
-	fields, destinations := getStructFieldsAndDestinations(result)
-	statement := fmt.Sprintf(`
-	SELECT
-		%s
-	FROM app
-	`, strings.Join(fields, ",\n\t\t"))
-
-	d.log.Debugf("executing statement: %v", statement)
-	startedAt := time.Now()
-
-	err := d.db.QueryRow(statement).Scan(destinations...)
+	err := d.db.QueryRow(statement).Scan(
+		&settings.StorageDir,
+	)
 
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
@@ -403,5 +273,55 @@ func (d *Database) GetSettingsForGSW() (*gsw.Result, error) {
 		d.log.Errorf("failed to get settings: %v", err)
 		return nil, fmt.Errorf("failed to get settings")
 	}
-	return result, nil
+
+	return &settings, nil
+}
+
+func (d *Database) UpdateSettings(request *data.Settings) (*data.Settings, error) {
+	tx, err := d.db.Begin()
+	if err != nil {
+		d.log.Errorf("failed to begin transaction: %v", err)
+		return nil, fmt.Errorf("failed to update settings")
+	}
+	defer tx.Rollback()
+
+	deleteStmt := `DELETE FROM settings`
+
+	d.log.Debugf("executing statement: %v", deleteStmt)
+	startedAt := time.Now()
+
+	_, err = tx.Exec(deleteStmt)
+
+	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
+
+	if err != nil {
+		d.log.Errorf("failed to delete existing settings: %v", err)
+		return nil, fmt.Errorf("failed to update settings")
+	}
+
+	insertStmt := `
+    INSERT INTO settings (
+        storage_dir
+    ) VALUES (
+        ?
+    )`
+
+	d.log.Debugf("executing statement: %v", insertStmt)
+	startedAt = time.Now()
+
+	_, err = tx.Exec(insertStmt, request.StorageDir)
+
+	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
+
+	if err != nil {
+		d.log.Errorf("failed to insert new settings: %v", err)
+		return nil, fmt.Errorf("failed to update settings")
+	}
+
+	if err = tx.Commit(); err != nil {
+		d.log.Errorf("failed to commit transaction: %v", err)
+		return nil, fmt.Errorf("failed to update settings")
+	}
+
+	return request, nil
 }

@@ -1,18 +1,17 @@
-package setsettings
+package updatesettings
 
 import (
 	"context"
 	"sync"
 	cjmessages "uv_server/internal/uv_server/business/common_job_messages"
 	"uv_server/internal/uv_server/business/data"
-	jobmessages "uv_server/internal/uv_server/business/workflows/set_settings/job_messages"
 	"uv_server/internal/uv_server/common/loggers"
 	"uv_server/internal/uv_server/config"
 
 	"github.com/sirupsen/logrus"
 )
 
-type SetSettingsWf struct {
+type UpdateSettingsWf struct {
 	uuid string
 
 	log    *logrus.Entry
@@ -24,19 +23,19 @@ type SetSettingsWf struct {
 	database data.Database
 }
 
-func NewSetSettingsWf(
+func NewUpdateSettingsWf(
 	uuid string,
 	config *config.Config,
 	jobCtx context.Context,
 	jobIn chan<- interface{},
 	job_out <-chan interface{},
 	database data.Database,
-) *SetSettingsWf {
-	object := &SetSettingsWf{}
+) *UpdateSettingsWf {
+	object := &UpdateSettingsWf{}
 	object.uuid = uuid
 	object.log = loggers.BusinessLogger.WithFields(
 		logrus.Fields{
-			"component": "NewSetSettingsWf",
+			"component": "NewUpdateSettingsWf",
 			"uuid":      uuid,
 		},
 	)
@@ -48,9 +47,9 @@ func NewSetSettingsWf(
 	return object
 }
 
-func (w *SetSettingsWf) Run(wg *sync.WaitGroup, request *jobmessages.Request) {
+func (w *UpdateSettingsWf) Run(wg *sync.WaitGroup, request *data.Settings) {
 	defer wg.Done()
-	result, err := w.database.SetSettingsForSSW(request)
+	result, err := w.database.UpdateSettings(request)
 
 	select {
 	case <-w.jobCtx.Done():

@@ -58,14 +58,14 @@ func (b *JobBuilder) CreateJob(
 			session_in,
 			b.resources,
 		)
-	case uv_protocol.SetSettingsRequest:
+	case uv_protocol.UpdateSettingsRequest:
 		wa = job.NewSetSettingsWfAdapter(
 			uuid,
 			b.config,
 			session_in,
 			b.resources,
 		)
-	case uv_protocol.GetSettingsResponse:
+	case uv_protocol.GetSettingsRequest:
 		wa = job.NewGetSettingsWfAdapter(
 			uuid,
 			b.config,
