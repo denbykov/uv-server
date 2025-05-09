@@ -35,7 +35,7 @@ func NewGetSettingsWf(
 	object.uuid = uuid
 	object.log = loggers.BusinessLogger.WithFields(
 		logrus.Fields{
-			"component": "NewGetSettingsWf",
+			"component": "GetSettingsWf",
 			"uuid":      uuid,
 		},
 	)

@@ -320,24 +320,13 @@ func (d *Database) GetSettings() (*data.Settings, error) {
 	return &settings, nil
 }
 
-func (d *Database) UpdateSettings(request *data.Settings) (*data.Settings, error) {
-	tx, err := d.db.Begin()
-	if err != nil {
-		d.log.Errorf("failed to begin transaction: %v", err)
-		return nil, fmt.Errorf("failed to update settings")
-	}
-	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && rollbackErr != sql.ErrTxDone {
-			d.log.Errorf("failed to rollback transaction: %v", err)
-		}
-	}()
-
+func (d *Database) UpdateSettings(settings *data.Settings) (*data.Settings, error) {
 	deleteStmt := `DELETE FROM settings`
 
 	d.log.Debugf("executing statement: %v", deleteStmt)
 	startedAt := time.Now()
 
-	_, err = tx.Exec(deleteStmt)
+	_, err := d.db.Exec(deleteStmt)
 
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
@@ -356,7 +345,7 @@ func (d *Database) UpdateSettings(request *data.Settings) (*data.Settings, error
 	d.log.Debugf("executing statement: %v", insertStmt)
 	startedAt = time.Now()
 
-	_, err = tx.Exec(insertStmt, request.StorageDir)
+	_, err = d.db.Exec(insertStmt, settings.StorageDir)
 
 	d.log.Debugf("execution took %v us", time.Since(startedAt).Microseconds())
 
@@ -365,10 +354,5 @@ func (d *Database) UpdateSettings(request *data.Settings) (*data.Settings, error
 		return nil, fmt.Errorf("failed to update settings")
 	}
 
-	if err = tx.Commit(); err != nil {
-		d.log.Errorf("failed to commit transaction: %v", err)
-		return nil, fmt.Errorf("failed to update settings")
-	}
-
-	return request, nil
+	return settings, nil
 }

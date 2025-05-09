@@ -7,15 +7,26 @@ import (
 
 	msg "uv_server/internal/uv_protocol"
 
+	"slices"
+
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
 var (
-	Payload string
+	Payload *string
 	Type    string
 	Uuid    string
 )
+
+var emptyPayloadTypes = []msg.Type{
+	msg.GetSettingsRequest,
+	msg.GetSettingsResponse,
+}
+
+func isEmptyPayloadType(msgType msg.Type) bool {
+	return slices.Contains(emptyPayloadTypes, msgType)
+}
 
 var genCmd = &cobra.Command{
 	Use:   "gen",
@@ -38,15 +49,18 @@ var genCmd = &cobra.Command{
 			return err
 		}
 
-		if Payload == "" {
-			if packetType == msg.GetSettingsRequest || packetType == msg.GetSettingsResponse {
-				Payload = "{}"
+		var payloadData []byte
+		if Payload == nil {
+			if isEmptyPayloadType(packetType) {
+				payloadData = nil
 			} else {
 				return errors.New("payload is required")
 			}
+		} else {
+			payloadData = []byte(*Payload)
 		}
 
-		packet, err := GenHexdump(packetType, Uuid, []byte(Payload))
+		packet, err := GenHexdump(packetType, Uuid, payloadData)
 		if err != nil {
 			return err
 		}
@@ -57,7 +71,17 @@ var genCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(genCmd)
-	genCmd.PersistentFlags().StringVarP(&Payload, "payload", "p", "", "JSON formatted payload (required)")
+	var emptyPayload string
+	genCmd.PersistentFlags().StringVarP(&emptyPayload, "payload", "p", "", "JSON formatted payload (required for non-empty payload types)")
+	if cmd, _, err := rootCmd.Find([]string{"gen"}); err == nil {
+		cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+			if flag := cmd.Flag("payload"); flag != nil && flag.Changed {
+				value := flag.Value.String()
+				Payload = &value
+			}
+			return nil
+		}
+	}
 	genCmd.PersistentFlags().StringVarP(&Type, "type", "t", "", "Type of the packet (required). Available: "+msg.GetTypeHint())
 	genCmd.PersistentFlags().StringVarP(&Uuid, "uuid", "u", "", "Enter your own Universally Unique Identifier (UUID) (not required)")
 }

@@ -14,5 +14,5 @@ type Database interface {
 	GetFilesForGFW(request *gfsw.Request) (*gfsw.Result, error)
 	GetFileForGFW(request *gfw.Request) (*gfw.Result, error)
 	GetSettings() (*Settings, error)
-	UpdateSettings(request *Settings) (*Settings, error)
+	UpdateSettings(settings *Settings) (*Settings, error)
 }
